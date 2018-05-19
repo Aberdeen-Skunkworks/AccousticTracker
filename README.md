@@ -1,4 +1,4 @@
-# AccousticTracker
+# Accoustic Tracker
 A device that triangulates locations of transducers using other transducers.
 
 The basic idea is that a small microcontroller with three transducers which can both send and recieve signals can also self calibrate their own locations by pinging back and forth between each other. Once their relative positions are established, they can then deduce the locations of other transducers which only transmit.
