@@ -20,7 +20,7 @@ int page_counter = 0;
 void setup() {
   // initialize serial communication at 115200 bits per second:
   pinMode(LED_BUILTIN, OUTPUT);
-  Serial.begin(115200);
+  Serial.begin(500000);
   analogWriteFrequency(right_speaker, 40000);
   analogWriteFrequency(left_speaker, 40000);
   analogWriteResolution(8);

@@ -22,7 +22,7 @@ class Controller():
         self.outputs = 0
         for port in self.ports:
             try:
-                self.com = serial.Serial(port=port, baudrate=115200, timeout=0.01)
+                self.com = serial.Serial(port=port, baudrate=500000, timeout=0.01)
                 self.com.reset_input_buffer()
 
                 print("Connected successfully to board on port " + str(port))
@@ -42,6 +42,7 @@ class Controller():
         
     def reset_buffer(self):
         self.com.reset_input_buffer()
+        self.com.flushInput()
         
     def send_start(self):
         self.com.write(b'd')
@@ -56,7 +57,8 @@ class Controller():
         print("Sent print command two")
         
     def read_1(self):
-        while len(list_of_serial_reads) < 1001:
+        list_of_serial_reads = []
+        while len(list_of_serial_reads) < 1025:
             serial_output = str(self.com.readline().decode(encoding='UTF-8'))
             if len(serial_output) > 0:
                 list_of_serial_reads.append(serial_output)
@@ -64,7 +66,8 @@ class Controller():
         return list_of_serial_reads
 
     def read_2(self):
-        while len(list_of_serial_reads_2) < 1001:
+        list_of_serial_reads_2 = []
+        while len(list_of_serial_reads_2) < 1025:
             serial_output = str(self.com.readline().decode(encoding='UTF-8'))
             if len(serial_output) > 0:
                 list_of_serial_reads_2.append(serial_output)
@@ -99,6 +102,7 @@ def read_and_calculate_values():
         for pages in range(number_of_pages):
             ctr.reset_buffer()
             ctr.send_print_2()
+            list_of_serial_reads_2 = []
             list_of_serial_reads_2 = ctr.read_2()
             time.sleep(0.1)
             for i in range(1,(int(number_of_samples/number_of_pages))+1):
