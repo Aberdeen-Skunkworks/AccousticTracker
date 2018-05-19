@@ -2,7 +2,7 @@
 #include <array>
 
 ADC *adc = new ADC(); // adc object
-const int pages = 5;
+const int pages = 1;
 const int page_size = 1024; //Powers of two are faster
 
 int number_points = page_size * pages;
@@ -35,7 +35,7 @@ void setup() {
   adc->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED);
   adc->setAveraging(0, ADC_0); // set number of averages  
   adc->setAveraging(0, ADC_1);
-  adc->startSynchronizedContinuous(read_right, read_left);
+  adc->analogSyncRead(read_right, read_left);
 }
 
 
@@ -71,7 +71,7 @@ void read_synchronous() {
   delay(0.25);
   analogWrite(left_speaker, 128);
   for(int i = 0; i < number_points; i = i + 1 ){
-    ADC::Sync_result output_of_both_adc = adc->readSynchronizedContinuous();
+    ADC::Sync_result output_of_both_adc = adc->analogSyncRead(read_right, read_left);
     output_of_adc_sync_1[i] = output_of_both_adc.result_adc0;
     output_of_adc_sync_2[i] = output_of_both_adc.result_adc1;
   }

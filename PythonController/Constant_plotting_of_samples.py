@@ -1,7 +1,12 @@
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+from matplotlib import style
 import time
 import re
 import numpy as np
+
+style.use('fivethirtyeight')
+
 
 class Controller():
     def __init__(self, ports = []):
@@ -111,22 +116,31 @@ def read_and_calculate_values():
             
     return voltages_1, voltages_2
 
-
-plt.clf()
-number_of_samples = 5000
+fig = plt.figure()
+ax1 = fig.add_subplot(2,1,1)
+ax2 = fig.add_subplot(2,1,2)
+number_of_samples = 1000
 number_of_pages = int(number_of_samples/1000)
 list_of_serial_reads = []
 list_of_serial_reads_2 = []
 
-values =  read_and_calculate_values()
-voltages_1 = values[0]
-voltages_2 = values[1]
 
-sample_number = np.linspace(0,number_of_samples, num=number_of_samples, dtype=int)
-plt.plot(sample_number, voltages_1, sample_number, voltages_2)
-plt.xlabel('Sample Number')
-plt.ylabel('Voltage (V)')
-plt.ylim([0,3.5])
+def animate(i):
+    values =  read_and_calculate_values()
+    voltages_1 = values[0]
+    voltages_2 = values[1]
+    sample_number = np.linspace(0,number_of_samples, num=number_of_samples, dtype=int)
+    ax1.clear()
+    ax2.clear()
+    ax1.plot(sample_number, voltages_1, linewidth=0.5)
+    ax2.plot(sample_number, voltages_2, linewidth=0.5)
+    #ax1.xlabel('Sample Number')
+    #ax1.ylabel('Voltage (V)')
+    #ax1.ylim([0,3.5])
+    
+    
+ani = animation.FuncAnimation(fig, animate,  interval = 1000)
+plt.show
 
 
 
