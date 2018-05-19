@@ -2,15 +2,17 @@
 #include <array>
 
 ADC *adc = new ADC(); // adc object
-int number_points = 5000;
+const int pages = 5;
+const int page_size = 1024; //Powers of two are faster
+
 int counter = 1;
 int left_speaker = 22;  // 22 for output, Analog read: A19 on ADC 1
 int right_speaker = 20; // 20 for output, Analog read: A9 on ADC 0
 int read_left = 38;
 int read_right = 23;
-int output_of_adc[5000];
-int output_of_adc_sync_1[5000];
-int output_of_adc_sync_2[5000];
+int output_of_adc[pages * page_size];
+int output_of_adc_sync_1[pages * page_size];
+int output_of_adc_sync_2[pages * page_size];
 int page_counter = 0;
 
 // the setup routine runs once when you press reset:
@@ -36,44 +38,19 @@ void setup() {
 }
 
 
+void print_buffer(int* buf) {
+  if (page_counter < pages){
+    for(int i = page_counter * page_size; i < ((page_counter + 1) * page_size); ++i) {
+      Serial.println(buf[i]);
+    }
+    ++page_counter;
+  }
 
-void print_buffer() {
-  if (page_counter < (number_points/1000)){
-    for(int i = (page_counter*1000); i < ((page_counter + 1) * 1000); i = i + 1 ){
-      Serial.println(output_of_adc[i]);
-        }
-    page_counter = page_counter + 1;
-} if (page_counter  == (number_points/1000)){
-    Serial.println("finished");
-}
-}
-
-
-void print_buffer_1() {
-  if (page_counter < (number_points/1000)){
-    for(int i = (page_counter*1000); i < ((page_counter + 1) * 1000); i = i + 1 ){
-      Serial.println(output_of_adc_sync_1[i]);
-        }
-    page_counter = page_counter + 1;
-} if (page_counter  == (number_points/1000)){
+  if (page_counter >= pages){
     Serial.println("finished");
     page_counter = 0;
+  }
 }
-}
-
-
-void print_buffer_2() {
-  if (page_counter < (number_points/1000)){
-    for(int i = (page_counter*1000); i < ((page_counter + 1) * 1000); i = i + 1 ){
-      Serial.println(output_of_adc_sync_2[i]);
-        }
-    page_counter = page_counter + 1;
-} if (page_counter  == (number_points/1000)){
-    Serial.println("finished");
-    page_counter = 0;
-}
-}
-
 
 void read_analog() {
   pinMode(left_speaker, INPUT_DISABLE);
@@ -109,25 +86,25 @@ void loop() {
   if (Serial.available()) {
     c = Serial.read();      
     if(c=='s') { // start read only the non powered Transducer
-        Serial.println("started");
-        read_analog();
-  } else if(c=='p'){ // Print only the single transducer to serial
-        Serial.println("printing");
-        print_buffer();      
-  } else if(c=='l') { // toggle led on and off
-        digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
+      Serial.println("started");
+      read_analog();
+    } else if(c=='p'){ // Print only the single transducer to serial
+      Serial.println("printing");
+      print_buffer(output_of_adc);
+    } else if(c=='l') { // toggle led on and off
+      digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
         
-  } else if(c=='d') { // Read Both ADCs at once
-        Serial.println("started");
-        read_synchronous();
-  } else if(c=='o') { // print first ADC
-        Serial.println("printing");
-        print_buffer_1(); 
-  } else if(c=='i') { // print Second ADC
-        Serial.println("printing");
-        print_buffer_2(); 
+    } else if(c=='d') { // Read Both ADCs at once
+      Serial.println("started");
+      read_synchronous();
+    } else if(c=='o') { // print first ADC
+      Serial.println("printing");
+      print_buffer(output_of_adc_sync_1);
+    } else if(c=='i') { // print Second ADC
+      Serial.println("printing");
+      print_buffer(output_of_adc_sync_2);
+    }
   }
-}
 }
 
 
