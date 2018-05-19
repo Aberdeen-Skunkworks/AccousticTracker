@@ -5,6 +5,7 @@ ADC *adc = new ADC(); // adc object
 const int pages = 5;
 const int page_size = 1024; //Powers of two are faster
 
+int number_points = page_size * pages;
 int counter = 1;
 int left_speaker = 22;  // 22 for output, Analog read: A19 on ADC 1
 int right_speaker = 20; // 20 for output, Analog read: A9 on ADC 0
