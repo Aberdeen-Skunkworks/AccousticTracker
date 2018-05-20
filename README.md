@@ -18,4 +18,4 @@ Speed is essential, as we need to resolve the phase of 40khz signals.
 
 We should use DMA transfers, following the examples in [this post](https://forum.pjrc.com/threads/30171-Reconfigure-ADC-via-a-DMA-transfer-to-allow-multiple-Channel-Acquisition) which is for using the two ADC's to read 4 channels simultaneously. 
 
-In theory we could overclock the ADC's too. [The results don't seem too bad by increasing the bus speed](https://forum.pjrc.com/threads/45993-Teensy-3-6-ADC-DMA-Question)
+In theory we could overclock the ADC's too. [The results don't seem too bad by increasing the bus speed](https://forum.pjrc.com/threads/30171-Reconfigure-ADC-via-a-DMA-transfer-to-allow-multiple-Channel-Acquisition)
