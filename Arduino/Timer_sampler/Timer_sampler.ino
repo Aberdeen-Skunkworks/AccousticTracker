@@ -54,28 +54,33 @@ void print_buffer(int* buf) {
 }
 
 IntervalTimer pulseTimer;
+volatile int pulsePin;
 
 void endPulse() {
-  pinMode(left_speaker, INPUT_DISABLE);
+  Serial.println("Pulse end ran ");
+  Serial.println(pulsePin);
+  pinMode(pulsePin, INPUT_DISABLE);
   pulseTimer.end();
 }
 
-void read_analog() {
-  pinMode(left_speaker, INPUT_DISABLE);
-  delay(0.25);
-  analogWrite(left_speaker, 128);
-  const int pulse_duration = 8; //Ping for 8 oscillations
-  pulseTimer.begin(endPulse, 25 * pulse_duration);
-  for(int i = 0; i < number_points; i = i + 1 ){
-    output_of_adc[i] = adc->analogRead(A9, ADC_0); //A9 is right speaker
-  }
-
+void read_analog(int pulse_pin = left_speaker, int ADC_channel = A9, int sel_ADC = ADC_0) {
+  if (pulse_pin != -1) {
+    pulsePin = pulse_pin;
+    pinMode(pulse_pin, INPUT_DISABLE);
+    delay(0.25);
+    analogWrite(pulse_pin, 128);
+    const int pulse_duration = 8; //Ping for 8 oscillations
+    pulseTimer.begin(endPulse, 25 * pulse_duration);
+    for(int i = 0; i < number_points; i = i + 1 ){
+      output_of_adc[i] = adc->analogRead(ADC_channel, sel_ADC); //A9 is right speaker
+   }
+   }
   Serial.println("finished");
   page_counter = 0;
-}
+ }
 
-
-void read_synchronous() {
+void read_synchronous(int pulse_pin = left_speaker) {
+  Serial.println(pulse_pin);
   pinMode(left_speaker, INPUT_DISABLE);
   delay(0.25);
   analogWrite(left_speaker, 128);
@@ -105,7 +110,9 @@ void loop() {
       print_buffer(output_of_adc);
     } else if(c=='l') { // toggle led on and off
       digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
-        
+    } else if(c=='b') {
+      Serial.println("started");
+      //read_analog(-1);  
     } else if(c=='d') { // Read Both ADCs at once
       Serial.println("started");
       read_synchronous();
