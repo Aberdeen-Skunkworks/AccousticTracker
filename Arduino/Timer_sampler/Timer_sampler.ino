@@ -54,7 +54,7 @@ void print_buffer(int* buf) {
 }
 
 IntervalTimer pulseTimer;
-int pulsePin;
+volatile int pulsePin;
 void endPulse() {
   pinMode(pulsePin, INPUT_DISABLE);
   pulseTimer.end();
