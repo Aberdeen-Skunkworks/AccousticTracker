@@ -67,7 +67,7 @@ class Controller():
             serial_output = str(self.com.readline().decode(encoding='UTF-8'))
             if len(serial_output) > 0:
                 list_of_serial_reads.append(serial_output)
-        print(self.com.in_waiting)
+        print("Bytes in buffer: ",self.com.in_waiting)
         return list_of_serial_reads
 
     def read_2(self):
@@ -76,7 +76,7 @@ class Controller():
             serial_output = str(self.com.readline().decode(encoding='UTF-8'))
             if len(serial_output) > 0:
                 list_of_serial_reads_2.append(serial_output)
-        print(self.com.in_waiting)
+        print("Bytes in buffer: ",self.com.in_waiting)
         return list_of_serial_reads_2
 
 
@@ -116,6 +116,55 @@ def read_and_calculate_values():
             
     return voltages_1, voltages_2
 
+
+
+def multiple_samples(samples):
+    distances = np.zeros(samples)
+    for sample_number in range(samples):
+        values =  read_and_calculate_values()
+        temp_voltages_1 = values[0]
+        temp_voltages_2 = values[1]
+
+        initial_deviation_magnitude = []
+        for i in range(20):
+            deavation = np.abs(1.65 - temp_voltages_1[i])
+            initial_deviation_magnitude.append(deavation)
+        average_deavation = np.sum(initial_deviation_magnitude)/len(initial_deviation_magnitude)
+        print()
+        print(initial_deviation_magnitude)
+        print()
+        larger_deavation_than = average_deavation * 3
+        heard_it_yet = False
+        sample_number_of_echo = 0
+        
+        for i in range(5,len(temp_voltages_1)):
+            deaviation_sample = []
+            for sample in range(15):
+                deaviation_sample.append(np.abs(1.65 - temp_voltages_1[i-sample]))
+            average_deavation_temp = np.sum(deaviation_sample)/len(deaviation_sample)
+            if average_deavation_temp > larger_deavation_than and heard_it_yet == False:
+                print("I hear it! Sample: ",i)
+                sample_number_of_echo = i
+                heard_it_yet = True
+            
+        
+        if sample_number_of_echo != 0:
+            time_to_first_echo = (sample_number_of_echo - 15 )/335000
+            distance_to_transducer_and_back_in_m = 343 * time_to_first_echo
+            distances[sample_number] = (distance_to_transducer_and_back_in_m/2)*100 # in cm
+            print("Distance: ",distances[sample_number]," cm")
+            
+    distance = np.average(distances)
+    return distance, distances
+
+
+output = multiple_samples(5)
+print("")
+print(output[1])
+print("Average distance = ",output[0], " cm")
+
+
+
 fig = plt.figure()
 ax1 = fig.add_subplot(2,1,1)
 ax2 = fig.add_subplot(2,1,2)
@@ -127,9 +176,15 @@ list_of_serial_reads_2 = []
 
 def animate(i):
     values =  read_and_calculate_values()
-    voltages_1 = values[0]
-    voltages_2 = values[1]
-    sample_number = np.linspace(0,number_of_samples, num=number_of_samples, dtype=int)
+    temp_1 = values[0]
+    temp_2 = values[1]
+    voltages_1 = []
+    voltages_2 = []
+    for i in range(500):
+        voltages_1.append( temp_1[i])
+        voltages_2.append( temp_2[i])
+        
+    sample_number = np.linspace(0,number_of_samples/2, num=number_of_samples/2, dtype=int)
     
     ax1.clear()
     ax1.plot(sample_number, voltages_1, linewidth=0.5)
@@ -148,37 +203,3 @@ def animate(i):
 ani = animation.FuncAnimation(fig, animate,  interval = 250)
 plt.show
 
-
-
-
-"""
-initial_deviation_magnitude = []
-for i in range(20):
-    deavation = np.abs(1.65 - voltages[i])
-    initial_deviation_magnitude.append(deavation)
-average_deavation = np.sum(initial_deviation_magnitude)/len(initial_deviation_magnitude)
-
-
-
-larger_deavation_than = average_deavation * 3
-heard_it_yet = False
-sample_number_of_echo = 0
-
-for i in range(15,len(voltages)):
-    deaviation_sample = []
-    for sample in range(15):
-        deaviation_sample.append(np.abs(1.65 - voltages[i-sample]))
-    average_deavation_temp = np.sum(deaviation_sample)/len(deaviation_sample)
-    if average_deavation_temp > larger_deavation_than and heard_it_yet == False:
-        print("I hear it! Sample: ",i)
-        sample_number_of_echo = i
-        heard_it_yet = True
-    
-
-if sample_number_of_echo != 0:
-    time_to_first_echo = (sample_number_of_echo - 15 )/335000
-    distance = 343 * time_to_first_echo
-    print("Distance: ",(distance/2)*100," cm")
-
-
-"""
