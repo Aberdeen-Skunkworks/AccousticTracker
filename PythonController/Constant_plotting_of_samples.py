@@ -91,6 +91,9 @@ number_of_samples = 1000
 number_of_pages = int(number_of_samples/1000)
 list_of_serial_reads = []
 list_of_serial_reads_2 = []
+    
+
+
 
 def read_and_calculate_values():
     with Controller() as ctr:
@@ -123,7 +126,6 @@ def read_and_calculate_values():
     return voltages_1, voltages_2
 
 
-
 def multiple_samples(samples):
     distances = np.zeros(samples)
     for sample_number in range(samples):
@@ -131,19 +133,13 @@ def multiple_samples(samples):
         temp_voltages_1 = values[0]
         temp_voltages_2 = values[1]
 
-        initial_deviation_magnitude = []
-        for i in range(20):
-            deavation = np.abs(1.65 - temp_voltages_1[i])
-            initial_deviation_magnitude.append(deavation)
-        average_deavation = np.sum(initial_deviation_magnitude)/len(initial_deviation_magnitude)
-        print()
-        print(initial_deviation_magnitude)
-        print()
-        larger_deavation_than = average_deavation * 3
+        background_deviation = 0.0055
+
+        larger_deavation_than = background_deviation * 1.5
         heard_it_yet = False
         sample_number_of_echo = 0
         
-        for i in range(5,len(temp_voltages_1)):
+        for i in range(15,len(temp_voltages_1)):
             deaviation_sample = []
             for sample in range(15):
                 deaviation_sample.append(np.abs(1.65 - temp_voltages_1[i-sample]))
@@ -164,16 +160,6 @@ def multiple_samples(samples):
     return distance, distances
 
 
-output = multiple_samples(5)
-print("")
-print(output[1])
-print("Average distance = ",output[0], " cm")
-
-
-
-
-
-
 def animate(i):
     values =  read_and_calculate_values()
     temp_1 = values[0]
@@ -186,11 +172,37 @@ def animate(i):
         
     sample_number = np.linspace(0,number_of_samples/2, num=number_of_samples/2, dtype=int)
     
+    background_deviation = 0.0055
+
+    larger_deavation_than = background_deviation * 1.5
+    heard_it_yet = False
+    sample_number_of_echo = 0
+    
+    for i in range(15,len(voltages_1)):
+        deaviation_sample = []
+        for sample in range(15):
+            deaviation_sample.append(np.abs(1.65 - voltages_1[i-sample]))
+        deaviation_sample = np.delete(np.sort(deaviation_sample), [len(np.sort(deaviation_sample))-1,1]) ## Removes highest and lowest value(try to minimise extreme noise)
+        average_deavation_temp = np.sum(deaviation_sample)/(len(deaviation_sample)-2)
+        if average_deavation_temp > larger_deavation_than and heard_it_yet == False:
+            print("I hear it! Sample: ",i)
+            sample_number_of_echo = i - 15
+            heard_it_yet = True
+            
+    if sample_number_of_echo != 0:
+        time_to_first_echo = (sample_number_of_echo)/335000
+        distance_to_transducer_and_back_in_m = 343 * time_to_first_echo
+        distance = (distance_to_transducer_and_back_in_m/2)*100 # in cm
+        distance_str = str("%.2f" % distance)
+        
     ax1.clear()
     ax1.plot(sample_number, voltages_1, linewidth=0.5)
+    label = distance_str + " cm"
+    ax1.plot([sample_number_of_echo,sample_number_of_echo],[0,3.5], label=(label))
     ax1.set_ylim([1.5,1.8])
     ax1.set_xlabel('Sample Number')
     ax1.set_ylabel('Voltage (V)')
+    ax1.legend()
     
     ax2.clear()
     ax2.plot(sample_number, voltages_2, linewidth=0.5)
@@ -198,8 +210,7 @@ def animate(i):
     ax2.set_xlabel('Sample Number')
     ax2.set_ylabel('Voltage (V)')
     
-    
-    
+
 ani = animation.FuncAnimation(fig, animate,  interval = 250)
 plt.show
 
