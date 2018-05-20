@@ -130,13 +130,19 @@ def animate(i):
     voltages_1 = values[0]
     voltages_2 = values[1]
     sample_number = np.linspace(0,number_of_samples, num=number_of_samples, dtype=int)
+    
     ax1.clear()
-    ax2.clear()
     ax1.plot(sample_number, voltages_1, linewidth=0.5)
+    ax1.set_ylim([1.5,1.8])
+    ax1.set_xlabel('Sample Number')
+    ax1.set_ylabel('Voltage (V)')
+    
+    ax2.clear()
     ax2.plot(sample_number, voltages_2, linewidth=0.5)
-    #ax1.xlabel('Sample Number')
-    #ax1.ylabel('Voltage (V)')
-    #ax1.ylim([0,3.5])
+    ax2.set_ylim([0,3.5])
+    ax2.set_xlabel('Sample Number')
+    ax2.set_ylabel('Voltage (V)')
+    
     
     
 ani = animation.FuncAnimation(fig, animate,  interval = 1000)
