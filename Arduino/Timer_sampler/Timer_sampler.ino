@@ -53,14 +53,23 @@ void print_buffer(int* buf) {
   }
 }
 
+IntervalTimer pulseTimer;
+
+void endPulse() {
+  pinMode(left_speaker, INPUT_DISABLE);
+  pulseTimer.end();
+}
+
 void read_analog() {
   pinMode(left_speaker, INPUT_DISABLE);
   delay(0.25);
   analogWrite(left_speaker, 128);
+  const int pulse_duration = 8; //Ping for 8 oscillations
+  pulseTimer.begin(endPulse, 25 * pulse_duration);
   for(int i = 0; i < number_points; i = i + 1 ){
     output_of_adc[i] = adc->analogRead(A9, ADC_0); //A9 is right speaker
   }
-  pinMode(left_speaker, INPUT_DISABLE);
+
   Serial.println("finished");
   page_counter = 0;
 }
