@@ -56,6 +56,10 @@ class Controller():
     def send_background_check(self): ## Print back with p
         self.com.write(b'b')
         print("Sent background check command")
+    
+    def send_print(self):
+        self.com.write(b'p')
+        print("Sent print")
         
     def send_print_1(self):
         self.com.write(b'o')
@@ -95,9 +99,25 @@ number_of_samples = 1000
 number_of_pages = int(number_of_samples/1000)
 list_of_serial_reads = []
 list_of_serial_reads_2 = []
-    
 
 
+def background_voltage():
+    with Controller() as ctr:
+        ctr.send_background_check
+        time.sleep(0.1)
+        background_voltages = []
+        ctr.reset_buffer()
+        for pages in range(number_of_pages):
+            ctr.reset_buffer()
+            ctr.send_print()
+            list_of_serial_reads = ctr.read_1()
+            time.sleep(0.1)
+            for i in range(1,(int(number_of_samples/number_of_pages))+1):
+                int_value = int(getWords(list_of_serial_reads[i])[0])
+                background_voltages.append((int_value*3.3)/(4096))
+    return np.average(background_voltages)
+
+background_voltage = background_voltage() 
 
 def read_and_calculate_values():
     with Controller() as ctr:
@@ -200,22 +220,27 @@ def animate(i):
         distance_str = str("%.2f" % distance)
     else:
         distance_str = "Cant hear anythigng"
+    
+    ## Aligning the voltages with the background
+    voltages_1 = np.subtract(voltages_1, background_voltage)
+    voltages_2 = np.subtract(voltages_2, background_voltage)
         
     ax1.clear()
     ax1.plot(sample_number, voltages_1, linewidth=0.5)
     label = distance_str + " cm"
-    ax1.plot([sample_number_of_echo,sample_number_of_echo],[0,3.5], label=(label))
-    ax1.set_ylim([1.5,1.8])
+    ax1.plot([sample_number_of_echo,sample_number_of_echo],[-3.5,3.5], label=(label))
+    ax1.set_ylim([-0.05,0.05])
     ax1.set_xlabel('Sample Number')
     ax1.set_ylabel('Voltage (V)')
     ax1.legend()
     
     ax2.clear()
     ax2.plot(sample_number, voltages_2, linewidth=0.5)
-    ax2.set_ylim([0,3.5])
+    ax2.set_ylim([-2,2])
     ax2.set_xlabel('Sample Number')
     ax2.set_ylabel('Voltage (V)')
     
+
 
 ani = animation.FuncAnimation(fig, animate,  interval = 250)
 plt.show

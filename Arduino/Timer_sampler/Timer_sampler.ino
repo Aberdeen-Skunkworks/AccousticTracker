@@ -69,9 +69,9 @@ void read_analog(int pulse_pin = left_speaker, int ADC_channel = A9, int sel_ADC
     analogWrite(pulse_pin, 128);
     const int pulse_duration = 8; //Ping for 8 oscillations
     pulseTimer.begin(endPulse, 25 * pulse_duration);
+  }
     for(int i = 0; i < number_points; i = i + 1 ){
       output_of_adc[i] = adc->analogRead(ADC_channel, sel_ADC); //A9 is right speaker
-   }
    }
   Serial.println("finished");
   page_counter = 0;
@@ -110,7 +110,7 @@ void loop() {
       digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
     } else if(c=='b') {
       Serial.println("started");
-      //read_analog(-1);  
+      read_analog(-1);  
     } else if(c=='d') { // Read Both ADCs at once
       Serial.println("started");
       read_synchronous();
