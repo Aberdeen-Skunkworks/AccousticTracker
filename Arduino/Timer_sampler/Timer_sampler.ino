@@ -54,12 +54,10 @@ void print_buffer(int* buf) {
 }
 
 IntervalTimer pulseTimer;
-volatile int pulsePin;
+volatile byte pulsePin;
 
-void endPulse() {
-  Serial.println("Pulse end ran ");
-  Serial.println(pulsePin);
-  pinMode(pulsePin, INPUT_DISABLE);
+void endPulse() { // Hard coded to change left speaker as pulse pin is not working ??
+  pinMode(left_speaker, INPUT_DISABLE);
   pulseTimer.end();
 }
 
