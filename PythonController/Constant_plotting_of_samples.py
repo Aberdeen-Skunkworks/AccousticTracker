@@ -84,7 +84,13 @@ class Controller():
 def getWords(text):
     return re.compile('\w+').findall(text)
 
-
+fig = plt.figure()
+ax1 = fig.add_subplot(2,1,1)
+ax2 = fig.add_subplot(2,1,2)
+number_of_samples = 1000
+number_of_pages = int(number_of_samples/1000)
+list_of_serial_reads = []
+list_of_serial_reads_2 = []
 
 def read_and_calculate_values():
     with Controller() as ctr:
@@ -165,13 +171,7 @@ print("Average distance = ",output[0], " cm")
 
 
 
-fig = plt.figure()
-ax1 = fig.add_subplot(2,1,1)
-ax2 = fig.add_subplot(2,1,2)
-number_of_samples = 1000
-number_of_pages = int(number_of_samples/1000)
-list_of_serial_reads = []
-list_of_serial_reads_2 = []
+
 
 
 def animate(i):
