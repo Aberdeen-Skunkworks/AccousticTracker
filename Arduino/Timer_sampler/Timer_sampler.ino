@@ -54,26 +54,22 @@ void print_buffer(int* buf) {
 }
 
 IntervalTimer pulseTimer;
-volatile int pulsePin;
+
 void endPulse() {
-  pinMode(pulsePin, INPUT_DISABLE);
+  pinMode(left_speaker, INPUT_DISABLE);
   pulseTimer.end();
 }
 
-void read_analog(int pulse_pin = left_speaker, int ADC_channel = A9, int sel_ADC = ADC_0) {
-  if (pulse_pin != -1) {
-    pulsePin = pulse_pin;
-    pinMode(pulse_pin, INPUT_DISABLE);
-    delay(0.25);
-    analogWrite(pulse_pin, 128);
-    const int pulse_duration = 8; //Ping for 8 oscillations
-    pulseTimer.begin(endPulse, 25 * pulse_duration);
-  }
-  
+void read_analog() {
+  pinMode(left_speaker, INPUT_DISABLE);
+  delay(0.25);
+  analogWrite(left_speaker, 128);
+  const int pulse_duration = 8; //Ping for 8 oscillations
+  pulseTimer.begin(endPulse, 25 * pulse_duration);
   for(int i = 0; i < number_points; i = i + 1 ){
-    output_of_adc[i] = adc->analogRead(ADC_channel, sel_ADC);
+    output_of_adc[i] = adc->analogRead(A9, ADC_0); //A9 is right speaker
   }
-  
+
   Serial.println("finished");
   page_counter = 0;
 }
@@ -104,9 +100,6 @@ void loop() {
     if(c=='s') { // start read only the non powered Transducer
       Serial.println("started");
       read_analog();
-    } else if(c=='b') {
-      Serial.println("started");
-      read_analog(-1);      
     } else if(c=='p'){ // Print only the single transducer to serial
       Serial.println("printing");
       print_buffer(output_of_adc);

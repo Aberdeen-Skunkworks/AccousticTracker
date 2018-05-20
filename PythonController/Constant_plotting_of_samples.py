@@ -52,6 +52,10 @@ class Controller():
     def send_start(self):
         self.com.write(b'd')
         print("Sent start command")
+    
+    def send_background_check(self): ## Print back with p
+        self.com.write(b'b')
+        print("Sent background check command")
         
     def send_print_1(self):
         self.com.write(b'o')
@@ -194,6 +198,8 @@ def animate(i):
         distance_to_transducer_and_back_in_m = 343 * time_to_first_echo
         distance = (distance_to_transducer_and_back_in_m/2)*100 # in cm
         distance_str = str("%.2f" % distance)
+    else:
+        distance_str = "Cant hear anythigng"
         
     ax1.clear()
     ax1.plot(sample_number, voltages_1, linewidth=0.5)
