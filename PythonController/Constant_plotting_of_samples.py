@@ -145,7 +145,7 @@ def animate(i):
     
     
     
-ani = animation.FuncAnimation(fig, animate,  interval = 1000)
+ani = animation.FuncAnimation(fig, animate,  interval = 250)
 plt.show
 
 
