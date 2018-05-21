@@ -101,9 +101,12 @@ def getWords(text):
     return re.compile('\w+').findall(text)
 
 fig = plt.figure()
-ax1 = fig.add_subplot(2.8,1,1)
-ax2 = fig.add_subplot(2.8,1,2)
-ax3 = fig.add_subplot(2.8,1,3)
+ax1 = fig.add_subplot(3,1,1)
+ax2 = fig.add_subplot(3,1,2)
+ax3 = fig.add_subplot(3,1,3)
+fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
+
+adc_resolution = 10
 number_of_samples = 1024
 number_of_pages = int(number_of_samples/1024)
 list_of_serial_reads = []
@@ -123,7 +126,7 @@ def background_voltage_func():
             time.sleep(0.1)
             for i in range(1,(int(number_of_samples/number_of_pages))+1):
                 int_value = int(getWords(list_of_serial_reads[i])[0])
-                background_voltages_left.append((int_value*3.3)/(4096))
+                background_voltages_left.append((int_value*3.3)/(2**adc_resolution))
         
         ctr.send_background_check_right()
         time.sleep(0.5)
@@ -136,7 +139,7 @@ def background_voltage_func():
             time.sleep(0.1)
             for i in range(1,(int(number_of_samples/number_of_pages))+1):
                 int_value = int(getWords(list_of_serial_reads[i])[0])
-                background_voltages_right.append((int_value*3.3)/(4096))
+                background_voltages_right.append((int_value*3.3)/(2**adc_resolution))
                 
     return background_voltages_left, background_voltages_right
 
@@ -165,7 +168,7 @@ def read_and_calculate_values():
             time.sleep(0.1)
             for i in range(1,(int(number_of_samples/number_of_pages))+1):
                 int_value = int(getWords(list_of_serial_reads[i])[0])
-                voltages_1.append((int_value*3.3)/(4096))
+                voltages_1.append((int_value*3.3)/(2**adc_resolution))
         
         voltages_2 = []
         ctr.reset_buffer()
@@ -178,7 +181,7 @@ def read_and_calculate_values():
             time.sleep(0.1)
             for i in range(1,(int(number_of_samples/number_of_pages))+1):
                 int_value = int(getWords(list_of_serial_reads_2[i])[0])
-                voltages_2.append((int_value*3.3)/(4096))
+                voltages_2.append((int_value*3.3)/(2**adc_resolution))
             
     return voltages_1, voltages_2
 
@@ -259,7 +262,7 @@ def animate(i):
     ax1.plot(voltages_1, linewidth=0.5)
     label = distance_str + " cm"
     ax1.plot([sample_number_of_echo,sample_number_of_echo],[-3.5,3.5], label=(label))
-    ax1.set_ylim([-1,1])
+    ax1.set_ylim([-0.08,0.08])
     ax1.set_title('Recieved Signal (Right Speaker)')
     ax1.set_xlabel('Sample Number')
     ax1.set_ylabel('Voltage (V)')

@@ -28,8 +28,8 @@ void setup() {
   pinMode(right_speaker, OUTPUT);
   pinMode(read_left, INPUT); // left speaker read pin
   pinMode(read_right, INPUT); // right speaker read pin
-  adc->setResolution(12, ADC_0); // set bits of resolution
-  adc->setResolution(12, ADC_1);
+  adc->setResolution(10, ADC_0); // set bits of resolution
+  adc->setResolution(10, ADC_1);
   adc->setReference(ADC_REFERENCE::REF_3V3);
   adc->setSamplingSpeed(ADC_SAMPLING_SPEED::VERY_HIGH_SPEED);
   adc->setConversionSpeed(ADC_CONVERSION_SPEED::VERY_HIGH_SPEED);
