@@ -67,7 +67,7 @@ void read_analog(int pulse_pin = left_speaker, int ADC_channel = A9, int sel_ADC
     pinMode(pulse_pin, INPUT_DISABLE);
     delay(0.25);
     analogWrite(pulse_pin, 128);
-    const int pulse_duration = 8; //Ping for 8 oscillations
+    const int pulse_duration = 4; //Ping for 8 oscillations
     pulseTimer.begin(endPulse, 25 * pulse_duration);
   }
     for(int i = 0; i < number_points; i = i + 1 ){
@@ -82,7 +82,7 @@ void read_synchronous(int pulse_pin = left_speaker) {
   pinMode(left_speaker, INPUT_DISABLE);
   delay(0.25);
   analogWrite(left_speaker, 128);
-  const int pulse_duration = 8; //Ping for 8 oscillations
+  const int pulse_duration = 4; //Ping for 8 oscillations
   pulseTimer.begin(endPulse, 25 * pulse_duration);
   for(int i = 0; i < number_points; i = i + 1 ){
     ADC::Sync_result output_of_both_adc = adc->analogSyncRead(read_right, read_left);

@@ -101,9 +101,9 @@ def getWords(text):
     return re.compile('\w+').findall(text)
 
 fig = plt.figure()
-ax1 = fig.add_subplot(3,1,1)
-ax2 = fig.add_subplot(3,1,2)
-ax3 = fig.add_subplot(3,1,3)
+ax1 = fig.add_subplot(2.8,1,1)
+ax2 = fig.add_subplot(2.8,1,2)
+ax3 = fig.add_subplot(2.8,1,3)
 number_of_samples = 1024
 number_of_pages = int(number_of_samples/1024)
 list_of_serial_reads = []
@@ -228,7 +228,7 @@ def animate(i):
         voltages_2.append( temp_2[i])
     
     target_wave = []
-    for i in range(int(0.04*number_of_samples)):
+    for i in range(int(0.02*number_of_samples)):
         target_wave.append(voltages_2[i])
     sample_number_of_echo = 0
     
@@ -259,7 +259,8 @@ def animate(i):
     ax1.plot(voltages_1, linewidth=0.5)
     label = distance_str + " cm"
     ax1.plot([sample_number_of_echo,sample_number_of_echo],[-3.5,3.5], label=(label))
-    ax1.set_ylim([-0.05,0.05])
+    ax1.set_ylim([-1,1])
+    ax1.set_title('Recieved Signal (Right Speaker)')
     ax1.set_xlabel('Sample Number')
     ax1.set_ylabel('Voltage (V)')
     ax1.legend()
@@ -267,12 +268,14 @@ def animate(i):
     ax2.clear()
     ax2.plot(voltages_2, linewidth=0.5)
     ax2.set_ylim([-2,2])
+    ax2.set_title('Transmitted Signal (Left Speaker)')
     ax2.set_xlabel('Sample Number')
     ax2.set_ylabel('Voltage (V)')
     
     ax3.clear()
     ax3.plot(correlation, linewidth=0.5)
     ax2.set_ylim([-2,2])
+    ax3.set_title('Correlation Signal')
     ax3.set_xlabel('Sample Number')
     ax3.set_ylabel('Voltage (V)')
 
