@@ -53,9 +53,13 @@ class Controller():
         self.com.write(b'd')
         print("Sent start command")
     
-    def send_background_check(self): ## Print back with p
+    def send_background_check_left(self): ## Print back with p
         self.com.write(b'b')
-        print("Sent background check command")
+        print("Sent background check left")
+    
+    def send_background_check_right(self): ## Print back with p
+        self.com.write(b'n')
+        print("Sent background check right")
     
     def send_print(self):
         self.com.write(b'p')
@@ -95,17 +99,17 @@ def getWords(text):
 fig = plt.figure()
 ax1 = fig.add_subplot(2,1,1)
 ax2 = fig.add_subplot(2,1,2)
-number_of_samples = 1000
-number_of_pages = int(number_of_samples/1000)
+number_of_samples = 1024
+number_of_pages = int(number_of_samples/1024)
 list_of_serial_reads = []
 list_of_serial_reads_2 = []
 
 
-def background_voltage():
+def background_voltage_func():
     with Controller() as ctr:
-        ctr.send_background_check
-        time.sleep(0.1)
-        background_voltages = []
+        ctr.send_background_check_left()
+        time.sleep(0.25)
+        background_voltages_left = []
         ctr.reset_buffer()
         for pages in range(number_of_pages):
             ctr.reset_buffer()
@@ -114,10 +118,34 @@ def background_voltage():
             time.sleep(0.1)
             for i in range(1,(int(number_of_samples/number_of_pages))+1):
                 int_value = int(getWords(list_of_serial_reads[i])[0])
-                background_voltages.append((int_value*3.3)/(4096))
-    return np.average(background_voltages)
+                background_voltages_left.append((int_value*3.3)/(4096))
+        
+        ctr.send_background_check_right()
+        time.sleep(0.5)
+        background_voltages_right = []
+        ctr.reset_buffer()
+        for pages in range(number_of_pages):
+            ctr.reset_buffer()
+            ctr.send_print()
+            list_of_serial_reads = ctr.read_1()
+            time.sleep(0.1)
+            for i in range(1,(int(number_of_samples/number_of_pages))+1):
+                int_value = int(getWords(list_of_serial_reads[i])[0])
+                background_voltages_right.append((int_value*3.3)/(4096))
+                
+    return background_voltages_left, background_voltages_right
 
-background_voltage = background_voltage() 
+backgrounds = background_voltage_func() 
+background_voltage_left   = np.average(backgrounds[0])
+background_voltage_right =  np.average(backgrounds[1])
+
+## For plotting the background voltages
+"""
+ax1.clear(); ax2.clear()
+sample_number_background = np.linspace(0,number_of_samples, num=number_of_samples, dtype=int)
+ax1.plot(sample_number_background, backgrounds[1], linewidth=0.5)
+ax2.plot(sample_number_background, backgrounds[0], linewidth=0.5)
+"""
 
 def read_and_calculate_values():
     with Controller() as ctr:
@@ -186,16 +214,16 @@ def multiple_samples(samples):
 
 def animate(i):
     values =  read_and_calculate_values()
-    temp_1 = values[0]
-    temp_2 = values[1]
+    temp_1 = np.subtract(values[0], background_voltage_right)
+    temp_2 = np.subtract(values[1], background_voltage_left)
     voltages_1 = []
     voltages_2 = []
-    for i in range(500):
+    for i in range(512):
         voltages_1.append( temp_1[i])
         voltages_2.append( temp_2[i])
         
     sample_number = np.linspace(0,number_of_samples/2, num=number_of_samples/2, dtype=int)
-    
+
     background_deviation = 0.0055
 
     larger_deavation_than = background_deviation * 1.5
@@ -222,8 +250,6 @@ def animate(i):
         distance_str = "Cant hear anythigng"
     
     ## Aligning the voltages with the background
-    voltages_1 = np.subtract(voltages_1, background_voltage)
-    voltages_2 = np.subtract(voltages_2, background_voltage)
         
     ax1.clear()
     ax1.plot(sample_number, voltages_1, linewidth=0.5)

@@ -108,9 +108,13 @@ void loop() {
       print_buffer(output_of_adc);
     } else if(c=='l') { // toggle led on and off
       digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
-    } else if(c=='b') {
+      
+    } else if(c=='b') { // Background voltage check left speaker
       Serial.println("started");
-      read_analog(-1);  
+      read_analog(-1);
+    } else if(c=='n') { // Background voltage check right speaker
+      Serial.println("started");
+      read_analog(-1,A19,ADC_1); 
     } else if(c=='d') { // Read Both ADCs at once
       Serial.println("started");
       read_synchronous();
