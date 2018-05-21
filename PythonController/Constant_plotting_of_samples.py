@@ -16,7 +16,7 @@ class Controller():
     def __enter__(self):
         import serial
         import os
-
+        
         if len(self.ports) == 0:
             if os.name == "nt":
                 self.ports = ["COM"+str(i) for i in range(1, 10)]
@@ -37,13 +37,17 @@ class Controller():
                 self.com = None
         if (self.com == None):
             raise Exception("Failed to open communications!")
-            
+        self.led_toggle()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
         #for i in range(self.outputs):
         #    self.disableOutput(i)
+        self.led_toggle()
         self.com.close()       
+    
+    def led_toggle(self):
+        self.com.write(b'l')
         
     def reset_buffer(self):
         self.com.reset_input_buffer()
@@ -97,8 +101,9 @@ def getWords(text):
     return re.compile('\w+').findall(text)
 
 fig = plt.figure()
-ax1 = fig.add_subplot(2,1,1)
-ax2 = fig.add_subplot(2,1,2)
+ax1 = fig.add_subplot(3,1,1)
+ax2 = fig.add_subplot(3,1,2)
+ax3 = fig.add_subplot(3,1,3)
 number_of_samples = 1024
 number_of_pages = int(number_of_samples/1024)
 list_of_serial_reads = []
@@ -218,28 +223,27 @@ def animate(i):
     temp_2 = np.subtract(values[1], background_voltage_left)
     voltages_1 = []
     voltages_2 = []
-    for i in range(512):
+    for i in range(int(number_of_samples/2)):
         voltages_1.append( temp_1[i])
         voltages_2.append( temp_2[i])
-        
-    sample_number = np.linspace(0,number_of_samples/2, num=number_of_samples/2, dtype=int)
-
-    background_deviation = 0.0055
-
-    larger_deavation_than = background_deviation * 1.5
-    heard_it_yet = False
+    
+    target_wave = []
+    for i in range(int(0.04*number_of_samples)):
+        target_wave.append(voltages_2[i])
     sample_number_of_echo = 0
     
-    for i in range(15,len(voltages_1)):
-        deaviation_sample = []
-        for sample in range(15):
-            deaviation_sample.append(np.abs(1.65 - voltages_1[i-sample]))
-        deaviation_sample = np.delete(np.sort(deaviation_sample), [len(np.sort(deaviation_sample))-1,1]) ## Removes highest and lowest value(try to minimise extreme noise)
-        average_deavation_temp = np.sum(deaviation_sample)/(len(deaviation_sample)-2)
-        if average_deavation_temp > larger_deavation_than and heard_it_yet == False:
-            print("I hear it! Sample: ",i)
-            sample_number_of_echo = i - 15
-            heard_it_yet = True
+    
+    #Now correlate the signal and target wave
+    correlation = []
+    for i in range(len(voltages_1) - len(target_wave)):
+       csum = 0
+       for j in range(len(target_wave)):
+           csum += voltages_1[i + j] * target_wave[j]
+       correlation.append(csum)
+
+    #Find the highest correlation
+    sample_number_of_echo = np.argmax(correlation)
+    
             
     if sample_number_of_echo != 0:
         time_to_first_echo = (sample_number_of_echo)/335000
@@ -247,12 +251,12 @@ def animate(i):
         distance = (distance_to_transducer_and_back_in_m/2)*100 # in cm
         distance_str = str("%.2f" % distance)
     else:
-        distance_str = "Cant hear anythigng"
+        distance_str = "Cant hear anything"
     
     ## Aligning the voltages with the background
         
     ax1.clear()
-    ax1.plot(sample_number, voltages_1, linewidth=0.5)
+    ax1.plot(voltages_1, linewidth=0.5)
     label = distance_str + " cm"
     ax1.plot([sample_number_of_echo,sample_number_of_echo],[-3.5,3.5], label=(label))
     ax1.set_ylim([-0.05,0.05])
@@ -261,11 +265,17 @@ def animate(i):
     ax1.legend()
     
     ax2.clear()
-    ax2.plot(sample_number, voltages_2, linewidth=0.5)
+    ax2.plot(voltages_2, linewidth=0.5)
     ax2.set_ylim([-2,2])
     ax2.set_xlabel('Sample Number')
     ax2.set_ylabel('Voltage (V)')
     
+    ax3.clear()
+    ax3.plot(correlation, linewidth=0.5)
+    ax2.set_ylim([-2,2])
+    ax3.set_xlabel('Sample Number')
+    ax3.set_ylabel('Voltage (V)')
+
 
 
 ani = animation.FuncAnimation(fig, animate,  interval = 250)
