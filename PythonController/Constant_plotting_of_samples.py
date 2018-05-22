@@ -12,19 +12,13 @@ class Controller():
     def __init__(self, ports = []):
         self.ports = ports
         pass
-            
+    
+       
     def __enter__(self):
         import serial
-        import os
         
-        if len(self.ports) == 0:
-            if os.name == "nt":
-                self.ports = ["COM"+str(i) for i in range(1, 12)]
-                
-            else:
-                self.ports = ["/dev/ttyUSB"+str(i) for i in range(0, 10)]
-
-        self.outputs = 0
+        self.ports = self.serial_ports()
+        
         for port in self.ports:
             try:
                 self.com = serial.Serial(port=port, baudrate=500000, timeout=0.01)
@@ -45,7 +39,38 @@ class Controller():
         #    self.disableOutput(i)
         self.led_toggle()
         self.com.close()       
+        
+    def serial_ports(self):
+        import sys
+        import glob
+        import serial
+        """ Lists serial port names
     
+            :raises EnvironmentError:
+                On unsupported or unknown platforms
+            :returns:
+                A list of the serial ports available on the system
+        """
+        if sys.platform.startswith('win'):
+            ports = ['COM%s' % (i + 1) for i in range(256)]
+        elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
+            # this excludes your current terminal "/dev/tty"
+            ports = glob.glob('/dev/tty[A-Za-z]*')
+        elif sys.platform.startswith('darwin'):
+            ports = glob.glob('/dev/tty.*')
+        else:
+            raise EnvironmentError('Unsupported platform')
+    
+        result = []
+        for port in ports:
+            try:
+                s = serial.Serial(port)
+                s.close()
+                result.append(port)
+            except (OSError, serial.SerialException):
+                pass
+        return result
+
     def led_toggle(self):
         self.com.write(b'l')
         
@@ -92,8 +117,7 @@ class Controller():
                 if word == "printing":
                     store_values = True
                     
-        print(len(list_of_serial_reads))
-        print("Bytes in buffer: ",self.com.in_waiting)
+        print("Bytes in buffer, for debugging: ",self.com.in_waiting)
         return list_of_serial_reads
 
 
@@ -220,13 +244,8 @@ def animate(i):
     t1 = time.time()
     values =  read_and_calculate_values()
 
-    temp_1 = np.subtract(values[0], background_voltage_right)
-    temp_2 = np.subtract(values[1], background_voltage_left)
-    voltages_1 = []
-    voltages_2 = []
-    for i in range(int(number_of_samples/2)):
-        voltages_1.append( temp_1[i])
-        voltages_2.append( temp_2[i])
+    voltages_1 = np.subtract(values[0], background_voltage_right)
+    voltages_2 = np.subtract(values[1], background_voltage_left)
     
     target_wave = []
     for i in range(int(0.1*number_of_samples)):
