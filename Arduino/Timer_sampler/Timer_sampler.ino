@@ -25,6 +25,7 @@ void setup() {
   analogWriteFrequency(left_speaker, 40000);
   analogWriteResolution(8);
   pinMode(left_speaker, OUTPUT);
+  //pinMode(left_speaker, OUTPUT); // Dont set this unless you want to output on this transducer
   pinMode(read_left, INPUT); // left speaker read pin
   pinMode(read_right, INPUT); // right speaker read pin
   adc->setResolution(10, ADC_0); // set bits of resolution

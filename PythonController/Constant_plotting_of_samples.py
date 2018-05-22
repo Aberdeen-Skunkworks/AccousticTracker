@@ -262,7 +262,7 @@ def animate(i):
     ax1.plot(voltages_1, linewidth=0.5)
     label = distance_str + " cm"
     ax1.plot([sample_number_of_echo,sample_number_of_echo],[-3.5,3.5], label=(label))
-    ax1.set_ylim([-0.2,0.2])
+    ax1.set_ylim([-0.2,0.2]) 
     ax1.set_title('Recieved Signal (Right Speaker)')
     ax1.set_xlabel('Sample Number')
     ax1.set_ylabel('Voltage (V)')
