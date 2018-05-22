@@ -54,7 +54,14 @@ void print_buffer(int* buf) {
 }
 
 IntervalTimer pulseTimer;
+IntervalTimer pulseTimer2;
+IntervalTimer pulseTimer3;
 volatile byte pulsePin;
+
+void startPulse() { // Hard coded to change left speaker as pulse pin is not working ??
+  analogWrite(left_speaker, 128);
+  pulseTimer2.end();
+}
 
 void endPulse() { // Hard coded to change left speaker as pulse pin is not working ??
   pinMode(left_speaker, INPUT_DISABLE);
@@ -69,11 +76,14 @@ void read_analog(int pulse_pin = left_speaker, int ADC_channel = A9, int sel_ADC
     analogWrite(pulse_pin, 128);
     const int pulse_duration = 4; //Ping for 8 oscillations
     pulseTimer.begin(endPulse, 25 * pulse_duration);
+    pulseTimer2.begin(startPulse,50 * pulse_duration);
+    pulseTimer3.begin(endPulse,75 * pulse_duration);
   }
     for(int i = 0; i < number_points; i = i + 1 ){
       output_of_adc[i] = adc->analogRead(ADC_channel, sel_ADC); //A9 is right speaker
    }
   Serial.println("reading done");
+  pulseTimer3.end();
   page_counter = 0;
  }
 
@@ -83,6 +93,8 @@ void read_synchronous(int pulse_pin = left_speaker) {
   analogWrite(left_speaker, 128);
   const int pulse_duration = 4; //Ping for 8 oscillations
   pulseTimer.begin(endPulse, 25 * pulse_duration);
+  pulseTimer2.begin(startPulse, 50 * pulse_duration);
+  pulseTimer3.begin(endPulse, 75 * pulse_duration);
   for(int i = 0; i < number_points; i = i + 1 ){
     ADC::Sync_result output_of_both_adc = adc->analogSyncRead(read_right, read_left);
     output_of_adc_sync_1[i] = output_of_both_adc.result_adc0;
@@ -90,6 +102,7 @@ void read_synchronous(int pulse_pin = left_speaker) {
   }
   pinMode(left_speaker, INPUT_DISABLE);
   Serial.println("reading done");
+  pulseTimer3.end();
   page_counter = 0;
 }
 

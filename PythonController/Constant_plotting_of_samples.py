@@ -7,7 +7,6 @@ import numpy as np
 
 style.use('fivethirtyeight')
 
-
 class Controller():
     def __init__(self, ports = []):
         self.ports = ports
@@ -137,7 +136,6 @@ number_of_samples = 512
 number_of_pages = 1
 
 
-
 def background_voltage_func():
     with Controller() as ctr:
         ctr.send_background_check_left()
@@ -203,52 +201,47 @@ def read_and_calculate_values():
                     int_value = int(list_of_serial_reads[i])
                     voltages_2.append((int_value*3.3)/(2**adc_resolution))
             
-            
     return voltages_1, voltages_2
 
 
-def multiple_samples(samples):
-    distances = np.zeros(samples)
-    for sample_number in range(samples):
-        values =  read_and_calculate_values()
-        temp_voltages_1 = values[0]
 
-        background_deviation = 0.0055
+def average_waves(averages):
+    """ Take in how many waves to average and output the average of those waves.
+    """
+    import numpy as np
+    
+    list_voltages_1 = []
+    list_voltages_2 = []
+    
+    for iteration in range(averages):
+        voltages = read_and_calculate_values()
+        list_voltages_1.append(voltages[0])
+        list_voltages_2.append(voltages[1])
+    
+    voltages_1 = np.average(list_voltages_1,axis = 0)
+    voltages_2 = np.average(list_voltages_2,axis = 0)
 
-        larger_deavation_than = background_deviation * 1.5
-        heard_it_yet = False
-        sample_number_of_echo = 0
-        
-        for i in range(15,len(temp_voltages_1)):
-            deaviation_sample = []
-            for sample in range(15):
-                deaviation_sample.append(np.abs(1.65 - temp_voltages_1[i-sample]))
-            average_deavation_temp = np.sum(deaviation_sample)/len(deaviation_sample)
-            if average_deavation_temp > larger_deavation_than and heard_it_yet == False:
-                print("I hear it! Sample: ",i)
-                sample_number_of_echo = i
-                heard_it_yet = True
-            
-        
-        if sample_number_of_echo != 0:
-            time_to_first_echo = (sample_number_of_echo - 15 )/335000
-            distance_to_transducer_and_back_in_m = 343 * time_to_first_echo
-            distances[sample_number] = (distance_to_transducer_and_back_in_m/2)*100 # in cm
-            print("Distance: ",distances[sample_number]," cm")
-            
-    distance = np.average(distances)
-    return distance, distances
+    return voltages_1, voltages_2
+
+
+
+
 
 
 def animate(i):
     t1 = time.time()
-    values =  read_and_calculate_values()
+    # One sample
+    #values =  read_and_calculate_values() 
+    
+    # Multiple samples
+    values =  average_waves(1)
+
 
     voltages_1 = np.subtract(values[0], background_voltage_right)
     voltages_2 = np.subtract(values[1], background_voltage_left)
     
     target_wave = []
-    for i in range(int(0.1*number_of_samples)):
+    for i in range(int(0.2*number_of_samples)):
         target_wave.append(voltages_2[i])
     sample_number_of_echo = 0
     
