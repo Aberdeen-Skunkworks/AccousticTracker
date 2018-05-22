@@ -33,13 +33,8 @@ def test_correlation(test):
     #can find "similar" signals)
     target_wave=[2 * (v>0) - 1 for v in clean_signal]
     
-    # - Uncomment next four lines to plot signal and target wave
-    #import matplotlib.pyplot as plt
-    #plt.plot(signal, linewidth=0.5)
-    #plt.plot(target_wave, linewidth=0.5)
-    #plt.show()
-    
-    test_result = functions.correlation(signal, target_wave)
+   
+    test_result = functions.correlation(signal, target_wave, True)
     
     if test_result != 150:
         print("Error: correlation test function failed")
