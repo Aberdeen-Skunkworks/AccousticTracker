@@ -4,26 +4,27 @@ def correlation(signal, target_wave, plot = False):
     It will output the index of the signal where the waves correlate most. Comment out the plotting lines to see the correlation plotted.
     """
     import numpy as np
+   
     #Correlate the signal and target wave
-    correlation = []
+    correlation_signal = []
     for i in range(len(signal) - len(target_wave)):
        csum = 0
        for j in range(len(target_wave)):
            csum += signal[i + j] * target_wave[j]
-       correlation.append(csum)
+       correlation_signal.append(csum)
     
     # Show the correlator function and both waves on the same plot
     if plot:
         import matplotlib.pyplot as plt
-        plt.plot(correlation, linewidth=0.5)
+        plt.plot(correlation_signal, linewidth=0.5)
         plt.plot(signal, linewidth=0.5)
         plt.plot(target_wave, linewidth=0.5)
         plt.show()
 
     #Find the highest correlation index
-    maxindex = np.argmax(correlation)
+    maxindex = np.argmax(correlation_signal)
     
-    return(maxindex)
+    return maxindex, correlation_signal
 
 
 

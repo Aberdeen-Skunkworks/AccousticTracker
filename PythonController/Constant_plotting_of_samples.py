@@ -205,7 +205,7 @@ def read_and_calculate_values():
 
 
 
-def average_waves(averages):
+def average_waves(averages): ### Need to find a better way of doing averaging this is not good
     """ Take in how many waves to average and output the average of those waves.
     """
     import numpy as np
@@ -230,16 +230,17 @@ def average_waves(averages):
 
 def animate(i):
     t1 = time.time()
-    # One sample
-    #values =  read_and_calculate_values() 
     
-    # Multiple samples
-    values =  average_waves(1)
+    # Take samples either signle or averaged 
+    values =  read_and_calculate_values() 
+    #values =  average_waves(15)
 
 
+    # Aligning the voltages with the background voltage, to centre around zero volts
     voltages_1 = np.subtract(values[0], background_voltage_right)
     voltages_2 = np.subtract(values[1], background_voltage_left)
     
+    # Target wave is some percentage of the transmitted signal
     target_wave = []
     for i in range(int(0.2*number_of_samples)):
         target_wave.append(voltages_2[i])
@@ -247,15 +248,8 @@ def animate(i):
     
     
     #Now correlate the signal and target wave
-    correlation = []
-    for i in range(len(voltages_1) - len(target_wave)):
-       csum = 0
-       for j in range(len(target_wave)):
-           csum += voltages_1[i + j] * target_wave[j]
-       correlation.append(csum)
-
-    #Find the highest correlation
-    sample_number_of_echo = np.argmax(correlation)
+    from functions import correlation
+    sample_number_of_echo, correlation_signal = correlation(voltages_1, target_wave)
     
             
     if sample_number_of_echo != 0:
@@ -266,7 +260,6 @@ def animate(i):
     else:
         distance_str = "Cant hear anything"
 
-    ## Aligning the voltages with the background
         
     ax1.clear()
     ax1.plot(voltages_1, linewidth=0.5)
@@ -286,7 +279,7 @@ def animate(i):
     ax2.set_ylabel('Voltage (V)')
     
     ax3.clear()
-    ax3.plot(correlation, linewidth=0.5)
+    ax3.plot(correlation_signal, linewidth=0.5)
     ax2.set_ylim([-2,2])
     ax3.set_title('Correlation Signal')
     ax3.set_xlabel('Sample Number')

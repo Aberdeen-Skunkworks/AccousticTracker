@@ -34,7 +34,7 @@ def test_correlation(passed = False):
     # can find "similar" signals)
     target_wave=[2 * (v>0) - 1 for v in clean_signal]
 
-    test_result = functions.correlation(signal, target_wave, plot = False) ## Change plot to true to plot functions
+    test_result = functions.correlation(signal, target_wave, plot = False)[0] ## Change plot to true to plot functions
     
     if test_result != 150:
         print("Error: correlation test function failed")
