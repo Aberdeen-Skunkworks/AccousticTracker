@@ -25,7 +25,6 @@ void setup() {
   analogWriteFrequency(left_speaker, 40000);
   analogWriteResolution(8);
   pinMode(left_speaker, OUTPUT);
-  pinMode(right_speaker, OUTPUT);
   pinMode(read_left, INPUT); // left speaker read pin
   pinMode(read_right, INPUT); // right speaker read pin
   adc->setResolution(10, ADC_0); // set bits of resolution
