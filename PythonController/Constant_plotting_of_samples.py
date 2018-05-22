@@ -19,7 +19,7 @@ class Controller():
         
         if len(self.ports) == 0:
             if os.name == "nt":
-                self.ports = ["COM"+str(i) for i in range(1, 10)]
+                self.ports = ["COM"+str(i) for i in range(1, 12)]
                 
             else:
                 self.ports = ["/dev/ttyUSB"+str(i) for i in range(0, 10)]
@@ -231,7 +231,7 @@ def animate(i):
         voltages_2.append( temp_2[i])
     
     target_wave = []
-    for i in range(int(0.02*number_of_samples)):
+    for i in range(int(0.1*number_of_samples)):
         target_wave.append(voltages_2[i])
     sample_number_of_echo = 0
     
