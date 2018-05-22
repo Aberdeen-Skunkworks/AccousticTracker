@@ -3,7 +3,7 @@
 
 ADC *adc = new ADC(); // adc object
 const int pages = 1;
-const int page_size = 1024; //Powers of two are faster
+const int page_size = 512; //Powers of two are faster
 
 int number_points = page_size * pages;
 int counter = 1;
@@ -73,12 +73,11 @@ void read_analog(int pulse_pin = left_speaker, int ADC_channel = A9, int sel_ADC
     for(int i = 0; i < number_points; i = i + 1 ){
       output_of_adc[i] = adc->analogRead(ADC_channel, sel_ADC); //A9 is right speaker
    }
-  Serial.println("finished");
+  Serial.println("reading done");
   page_counter = 0;
  }
 
 void read_synchronous(int pulse_pin = left_speaker) {
-  Serial.println(pulse_pin);
   pinMode(left_speaker, INPUT_DISABLE);
   delay(0.25);
   analogWrite(left_speaker, 128);
@@ -90,7 +89,7 @@ void read_synchronous(int pulse_pin = left_speaker) {
     output_of_adc_sync_2[i] = output_of_both_adc.result_adc1;
   }
   pinMode(left_speaker, INPUT_DISABLE);
-  Serial.println("finished");
+  Serial.println("reading done");
   page_counter = 0;
 }
 
@@ -101,7 +100,7 @@ void loop() {
   if (Serial.available()) {
     c = Serial.read();      
     if(c=='s') { // start read only the non powered Transducer
-      Serial.println("started");
+      Serial.println("started reading");
       read_analog();
     } else if(c=='p'){ // Print only the single transducer to serial
       Serial.println("printing");
@@ -110,13 +109,13 @@ void loop() {
       digitalWriteFast(LED_BUILTIN, !digitalReadFast(LED_BUILTIN));
       
     } else if(c=='b') { // Background voltage check left speaker
-      Serial.println("started");
+      Serial.println("started reading");
       read_analog(-1);
     } else if(c=='n') { // Background voltage check right speaker
-      Serial.println("started");
+      Serial.println("started reading");
       read_analog(-1,A19,ADC_1); 
     } else if(c=='d') { // Read Both ADCs at once
-      Serial.println("started");
+      Serial.println("started reading");
       read_synchronous();
     } else if(c=='o') { // print first ADC
       Serial.println("printing");

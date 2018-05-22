@@ -13,7 +13,7 @@ def correlation(signal, target_wave, plot = False):
        correlation.append(csum)
     
     # Show the correlator function and both waves on the same plot
-    if plot():
+    if plot:
         import matplotlib.pyplot as plt
         plt.plot(correlation, linewidth=0.5)
         plt.plot(signal, linewidth=0.5)

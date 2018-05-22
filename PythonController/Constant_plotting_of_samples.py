@@ -77,28 +77,30 @@ class Controller():
         self.com.write(b'i')
         print("Sent print command two")
         
-    def read_1(self):
+    def read(self):
         list_of_serial_reads = []
-        while len(list_of_serial_reads) < 1025:
+        read = True
+        store_values = False
+        while read == True:
             serial_output = str(self.com.readline().decode(encoding='UTF-8'))
             if len(serial_output) > 0:
-                list_of_serial_reads.append(serial_output)
+                word = getWords(serial_output)[0]
+                if word == "finished":
+                    read = False
+                if store_values == True and read == True:
+                    list_of_serial_reads.append(serial_output)
+                if word == "printing":
+                    store_values = True
+                    
+        print(len(list_of_serial_reads))
         print("Bytes in buffer: ",self.com.in_waiting)
         return list_of_serial_reads
-
-    def read_2(self):
-        list_of_serial_reads_2 = []
-        while len(list_of_serial_reads_2) < 1025:
-            serial_output = str(self.com.readline().decode(encoding='UTF-8'))
-            if len(serial_output) > 0:
-                list_of_serial_reads_2.append(serial_output)
-        print("Bytes in buffer: ",self.com.in_waiting)
-        return list_of_serial_reads_2
 
 
 
 def getWords(text):
     return re.compile('\w+').findall(text)
+
 
 fig = plt.figure()
 ax1 = fig.add_subplot(3,1,1)
@@ -107,39 +109,36 @@ ax3 = fig.add_subplot(3,1,3)
 fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
 
 adc_resolution = 10
-number_of_samples = 1024
-number_of_pages = int(number_of_samples/1024)
-list_of_serial_reads = []
-list_of_serial_reads_2 = []
+number_of_samples = 512
+number_of_pages = 1
+
 
 
 def background_voltage_func():
     with Controller() as ctr:
         ctr.send_background_check_left()
-        time.sleep(0.25)
         background_voltages_left = []
-        ctr.reset_buffer()
         for pages in range(number_of_pages):
-            ctr.reset_buffer()
             ctr.send_print()
-            list_of_serial_reads = ctr.read_1()
-            time.sleep(0.1)
-            for i in range(1,(int(number_of_samples/number_of_pages))+1):
-                int_value = int(getWords(list_of_serial_reads[i])[0])
-                background_voltages_left.append((int_value*3.3)/(2**adc_resolution))
-        
+            list_of_serial_reads = ctr.read()
+            if len(list_of_serial_reads) == 0:
+                print("Error no data read in background voltage check")
+            else:
+                for i in range(len(list_of_serial_reads)):
+                    int_value = int(list_of_serial_reads[i])
+                    background_voltages_left.append((int_value*3.3)/(2**adc_resolution))
+                
         ctr.send_background_check_right()
-        time.sleep(0.5)
         background_voltages_right = []
-        ctr.reset_buffer()
         for pages in range(number_of_pages):
-            ctr.reset_buffer()
             ctr.send_print()
-            list_of_serial_reads = ctr.read_1()
-            time.sleep(0.1)
-            for i in range(1,(int(number_of_samples/number_of_pages))+1):
-                int_value = int(getWords(list_of_serial_reads[i])[0])
-                background_voltages_right.append((int_value*3.3)/(2**adc_resolution))
+            list_of_serial_reads = ctr.read()
+            if len(list_of_serial_reads) == 0:
+                print("Error no data read in background voltage check")
+            else:
+                for i in range(len(list_of_serial_reads)):
+                    int_value = int(list_of_serial_reads[i])
+                    background_voltages_right.append((int_value*3.3)/(2**adc_resolution))
                 
     return background_voltages_left, background_voltages_right
 
@@ -158,30 +157,28 @@ ax2.plot(sample_number_background, backgrounds[0], linewidth=0.5)
 def read_and_calculate_values():
     with Controller() as ctr:
         ctr.send_start()
-        time.sleep(0.1)
         voltages_1 = []
-        ctr.reset_buffer()
         for pages in range(number_of_pages):
-            ctr.reset_buffer()
             ctr.send_print_1()
-            list_of_serial_reads = ctr.read_1()
-            time.sleep(0.1)
-            for i in range(1,(int(number_of_samples/number_of_pages))+1):
-                int_value = int(getWords(list_of_serial_reads[i])[0])
-                voltages_1.append((int_value*3.3)/(2**adc_resolution))
-        
+            list_of_serial_reads = ctr.read()
+            if len(list_of_serial_reads) == 0:
+                print("Error no data read in read_and_calculate_values")
+            else:
+                for i in range(len(list_of_serial_reads)):
+                    int_value = int(list_of_serial_reads[i])
+                    voltages_1.append((int_value*3.3)/(2**adc_resolution))
+                
         voltages_2 = []
-        ctr.reset_buffer()
-        time.sleep(0.1)
         for pages in range(number_of_pages):
-            ctr.reset_buffer()
             ctr.send_print_2()
-            list_of_serial_reads_2 = []
-            list_of_serial_reads_2 = ctr.read_2()
-            time.sleep(0.1)
-            for i in range(1,(int(number_of_samples/number_of_pages))+1):
-                int_value = int(getWords(list_of_serial_reads_2[i])[0])
-                voltages_2.append((int_value*3.3)/(2**adc_resolution))
+            list_of_serial_reads = ctr.read()
+            if len(list_of_serial_reads) == 0:
+                print("Error no data read in read_and_calculate_values")
+            else:
+                for i in range(len(list_of_serial_reads)):
+                    int_value = int(list_of_serial_reads[i])
+                    voltages_2.append((int_value*3.3)/(2**adc_resolution))
+            
             
     return voltages_1, voltages_2
 
@@ -191,7 +188,6 @@ def multiple_samples(samples):
     for sample_number in range(samples):
         values =  read_and_calculate_values()
         temp_voltages_1 = values[0]
-        temp_voltages_2 = values[1]
 
         background_deviation = 0.0055
 
@@ -221,7 +217,9 @@ def multiple_samples(samples):
 
 
 def animate(i):
+    t1 = time.time()
     values =  read_and_calculate_values()
+
     temp_1 = np.subtract(values[0], background_voltage_right)
     temp_2 = np.subtract(values[1], background_voltage_left)
     voltages_1 = []
@@ -255,7 +253,7 @@ def animate(i):
         distance_str = str("%.2f" % distance)
     else:
         distance_str = "Cant hear anything"
-    
+
     ## Aligning the voltages with the background
         
     ax1.clear()
@@ -281,8 +279,8 @@ def animate(i):
     ax3.set_title('Correlation Signal')
     ax3.set_xlabel('Sample Number')
     ax3.set_ylabel('Voltage (V)')
-
-
+    t2 = time.time()
+    print("Time = ",t2-t1)
 
 ani = animation.FuncAnimation(fig, animate,  interval = 250)
 plt.show
