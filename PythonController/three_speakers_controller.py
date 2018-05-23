@@ -155,12 +155,6 @@ def getWords(text):
     return re.compile('\w+').findall(text)
 
 
-fig = plt.figure()
-ax1 = fig.add_subplot(3,1,1)
-ax2 = fig.add_subplot(3,1,2)
-ax3 = fig.add_subplot(3,1,3)
-fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
-
 adc_resolution = 10
 number_of_samples = 512
 number_of_pages = 1
@@ -299,9 +293,9 @@ def calculate_distance(voltages, run_number):
     # Target wave is some percentage of the transmitted signal
     target_wave = []
     for i in range(int(0.2*number_of_samples)):
-        if run_number == 1 or run_number == 3 or run_number == 6:
+        if run_number == 1 or run_number == 4 or run_number == 6:
             target_wave.append(voltages_1[i])
-        elif run_number == 2 or run_number == 4 or run_number == 5:
+        elif run_number == 2 or run_number == 3 or run_number == 5:
             target_wave.append(voltages_2[i])
         else:
             raise Exception('Pick a run number between 1 and 6')
@@ -311,9 +305,9 @@ def calculate_distance(voltages, run_number):
     
     #Now correlate the signal and target wave
     from functions import correlation
-    if run_number == 1 or run_number == 3 or run_number == 6:
+    if run_number == 1 or run_number == 4 or run_number == 6:
         sample_number_of_echo, correlation_signal = correlation(voltages_2, target_wave)
-    elif run_number == 2 or run_number == 4 or run_number == 5:
+    elif run_number == 2 or run_number == 3 or run_number == 5:
         sample_number_of_echo, correlation_signal = correlation(voltages_1, target_wave)
     else:
         raise Exception('Pick a run number between 1 and 6')
@@ -332,23 +326,52 @@ def calculate_distance(voltages, run_number):
     return distance
 
 
-distance_1_1 = calculate_distance(read_and_calculate_values(1) , 1)
-distance_1_2 = calculate_distance(read_and_calculate_values(2) , 2)
+distances_1 = []
+distances_2 = []
+distances_3 = []
 
-distance_2_1 = calculate_distance(read_and_calculate_values(3) , 3)
-distance_2_2 = calculate_distance(read_and_calculate_values(4) , 4)
+def average_distances(averages):
+    
+    for i in range(averages):
+        distance_1_1 = calculate_distance(read_and_calculate_values(1) , 1)
+        distance_1_2 = calculate_distance(read_and_calculate_values(2) , 2)
+        distance_1 = np.average([distance_1_1, distance_1_2])
+        distances_1.append(distance_1)
+        
+        distance_2_1 = calculate_distance(read_and_calculate_values(3) , 3)
+        distance_2_2 = calculate_distance(read_and_calculate_values(4) , 4)
+        distance_2 = np.average([distance_2_1, distance_2_2])
+        distances_2.append(distance_2)
+        
+        distance_3_1 = calculate_distance(read_and_calculate_values(5) , 5)
+        distance_3_2 = calculate_distance(read_and_calculate_values(6) , 6)
+        distance_3 = np.average([distance_3_1, distance_3_2])
+        distances_3.append(distance_3)
+        
+    
+    return np.average(distances_1), np.average(distances_2), np.average(distances_3),
+                      
+   
+distance_1, distance_2, distance_3 = average_distances(10)
+      
+print("D1 1-2 = Average = ", "%.2f" % distance_1)
+print("D2 1-3 = Average = ", "%.2f" % distance_2)
+print("D3 2-3 = Average = ", "%.2f" % distance_3)
 
-distance_3_1 = calculate_distance(read_and_calculate_values(5) , 5)
-distance_3_2 = calculate_distance(read_and_calculate_values(6) , 6)
-
-print("%.2f" % distance_1_1, "%.2f" % distance_1_2)
-print("%.2f" % distance_2_1, "%.2f" % distance_2_2)
-print("%.2f" % distance_3_1, "%.2f" % distance_3_2)
 
 
 
 
 """
+fig = plt.figure()
+ax1 = fig.add_subplot(3,1,1)
+ax2 = fig.add_subplot(3,1,2)
+ax3 = fig.add_subplot(3,1,3)
+fig.subplots_adjust(left=None, bottom=None, right=None, top=None, wspace=0.5, hspace=0.5)
+
+
+
+
 def animate(i):
     t1 = time.time()
     run_number = 2
