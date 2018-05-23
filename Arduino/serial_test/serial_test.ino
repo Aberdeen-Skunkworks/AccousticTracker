@@ -1,3 +1,5 @@
+// serial tester
+
 const byte numChars = 4;
 char receivedChars[numChars];
 
