@@ -352,7 +352,7 @@ def average_distances(averages):
     return np.average(distances_1), np.average(distances_2), np.average(distances_3),
                       
    
-distance_1, distance_2, distance_3 = average_distances(10)
+distance_1, distance_2, distance_3 = average_distances(5)
       
 print("D1 1-2 = Average = ", "%.2f" % distance_1)
 print("D2 1-3 = Average = ", "%.2f" % distance_2)

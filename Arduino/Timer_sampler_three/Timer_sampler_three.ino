@@ -73,8 +73,6 @@ void endPulse() {
 void read_analog(int pulse_pin = speaker_1_out, int ADC_channel = A2, int sel_ADC = ADC_0) {
   if (pulse_pin != -1) {
     pulsePin = pulse_pin;
-    pinMode(pulse_pin, INPUT_DISABLE);
-    delay(0.25);
     analogWrite(pulse_pin, 128);
     const int pulse_duration = 4; //Ping for 8 oscillations
     pulseTimer.begin(endPulse, 25 * pulse_duration);
