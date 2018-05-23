@@ -116,8 +116,6 @@ void read_synchronous(int pulse_pin, int read_speaker) {
 
 
 
-
-
 char c=0;
 
 void loop() {
