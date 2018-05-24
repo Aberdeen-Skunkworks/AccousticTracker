@@ -29,11 +29,7 @@ void setup() {
   // initialize the digital pin as an output.
   pinMode(ledPin, OUTPUT);
   delay(500);
-  
-  analogWriteFrequency(20, 40000);
-  analogWriteResolution(8);
-  analogWrite(20, 128);
-  
+  pinMode(20, OUTPUT);
 
   Serial.begin(115200);
 
@@ -48,8 +44,30 @@ void setup() {
   setup_dma();
 
 }
-elapsedMillis debounce;
 
+volatile int pwm_counter = 0;
+
+IntervalTimer pwm_timer;
+
+void pwm_isr(void) {
+  bool oldState = digitalRead(20);
+  digitalWrite(20, !oldState);//Toggle
+  pwm_counter += 1;
+  if (pwm_counter > 16)
+    pwm_timer.end();
+  }
+
+void dma0_isr(void) {
+  dma0->TCD->DADDR = &adcbuffer_0[0];
+  dma0->clearInterrupt();
+  //dma0->enable();
+}
+
+void dma2_isr(void) {
+  dma2->TCD->DADDR = &adcbuffer_1[0];
+  dma2->clearInterrupt();
+  //dma2->enable();
+}
 
 void loop() {
   DynamicJsonBuffer jsonBuffer;
@@ -88,8 +106,8 @@ void loop() {
             Serial.print(adcbuffer_1[i + 2]);
             Serial.print(",");
             Serial.print(adcbuffer_1[i + 3]);
-            if (i != BUF_SIZE-4)
-               Serial.print(",");
+            if (i != BUF_SIZE - 4)
+              Serial.print(",");
           }
           Serial.print("]}\n");
 
@@ -98,14 +116,16 @@ void loop() {
           digitalWrite(ledPin, LOW);    // set the LED off
           break;
         }
-        case 2: {
+      case 2: {
+          digitalWrite(20, 0);
+          pwm_counter = 0;
           //Don't allow interrupts while we enable all the dma systems
           noInterrupts();
           dma0->enable();
           dma2->enable();
-
+          pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
           interrupts();
-          
+
           jsonBuffer.clear(); //Save memory by clearing the jBuffer for reuse, we can't use json_in_root or anything from it after this though!
           JsonObject& json_out_root = jsonBuffer.createObject();
           json_out_root["Status"] = "Success";
@@ -126,18 +146,6 @@ void loop() {
   }
 
   digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
-}
-
-void dma0_isr(void) {
-  dma0->TCD->DADDR = &adcbuffer_0[0];
-  dma0->clearInterrupt();
-  //dma0->enable();
-}
-
-void dma2_isr(void) {
-  dma2->TCD->DADDR = &adcbuffer_1[0];
-  dma2->clearInterrupt();
-  //dma2->enable();
 }
 
 void setup_dma() {
@@ -200,7 +208,7 @@ void setup_dma() {
   dma3->TCD->DOFF = 0;
   dma3->triggerAtTransfersOf(*dma2);
   dma3->triggerAtCompletionOf(*dma2);
-  
+
   dma1->enable();
   dma3->enable();
 }
