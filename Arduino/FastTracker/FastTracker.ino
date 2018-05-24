@@ -59,10 +59,6 @@ void setup() {
 }
 elapsedMillis debounce;
 
-template<class T, class K>
-bool hasKeyType(JsonObject& r, const K& key) {
-  return r.containsKey(key) && r.is<T>(key);
-}
 
 void loop() {
 DynamicJsonBuffer jBuffer;
@@ -70,7 +66,7 @@ JsonObject& root = jBuffer.parseObject(Serial, 1);
 if (!root.success())
   return;
 
-if (hasKeyType<const char*>(root, "Cmd"))
+if (root.containsKey("CMD") && root.is<const char*>("CMD"))
   Serial.println("Hey I have a command");
 
 root.prettyPrintTo(Serial);
