@@ -17,8 +17,8 @@ DMAChannel* dma3 = new DMAChannel(false);
 
 //ChannelsCfg order must be {CH1, CH2, CH3, CH0 }, adcbuffer output will be CH0, CH1, CH2, CH3
 //Order must be {Second . . . . . . . . First} no matter the number of channels used.
-const uint16_t ChannelsCfg_0 [] =  { 0x46, 0x46, 0x46, 0x46 };  //ADC0: CH0 ad6(A6), CH1 ad7(A7), CH2 ad15(A8), CH3 ad4(A9)
-const uint16_t ChannelsCfg_1 [] =  { 0x45, 0x46, 0x47, 0x44 };  //ADC1: CH0 ad4(A17), CH1 ad5(A16), CH2ad6(A18), CH3 ad7(A19)
+DMAMEM static volatile uint16_t __attribute__((aligned(BUF_SIZE + 0))) ChannelsCfg_0 [] =  { 0x46, 0x46, 0x46, 0x46 };  //ADC0: CH0 ad6(A6), CH1 ad7(A7), CH2 ad15(A8), CH3 ad4(A9)
+DMAMEM static volatile uint16_t __attribute__((aligned(BUF_SIZE + 0))) ChannelsCfg_1 [] =  { 0x45, 0x46, 0x47, 0x44 };  //ADC1: CH0 ad4(A17), CH1 ad5(A16), CH2ad6(A18), CH3 ad7(A19)
 
 const int ledPin = 13;
 
@@ -46,16 +46,18 @@ void setup() {
 }
 
 volatile int pwm_counter = 0;
-
+volatile int pwm_pin = 20;
+volatile int pwm_pulse_width = 8;
 IntervalTimer pwm_timer;
 
+
 void pwm_isr(void) {
-  bool oldState = digitalRead(20);
-  digitalWrite(20, !oldState);//Toggle
+  bool oldState = digitalRead(pwm_pin);
+  digitalWrite(pwm_pin, !oldState);//Toggle
   pwm_counter += 1;
-  if (pwm_counter > 16)
+  if (pwm_counter > pwm_pulse_width)
     pwm_timer.end();
-  }
+}
 
 void dma0_isr(void) {
   dma0->TCD->DADDR = &adcbuffer_0[0];
@@ -71,7 +73,7 @@ void dma2_isr(void) {
 
 void loop() {
   DynamicJsonBuffer jsonBuffer;
-  JsonObject& json_in_root = jsonBuffer.parseObject(Serial, 1);
+  JsonObject& json_in_root = jsonBuffer.parseObject(Serial, 2);
   if (!json_in_root.success())
     return;
 
@@ -89,7 +91,9 @@ void loop() {
           break;
         }
       case 1: {
-          Serial.print("{\"Status\":\"Success\", \"Result\":[");
+          //Read out the results of the last conversion!
+
+          Serial.print("{\"Status\":\"Success\", \"ResultADC0\":[");
           for (int i = 0; i < BUF_SIZE; i = i + 4) {
             Serial.print(adcbuffer_0[i]);
             Serial.print(",");
@@ -98,7 +102,11 @@ void loop() {
             Serial.print(adcbuffer_0[i + 2]);
             Serial.print(",");
             Serial.print(adcbuffer_0[i + 3]);
-            Serial.print(",");
+            if (i != BUF_SIZE - 4)
+              Serial.print(",");
+          }
+          Serial.print("], \"ResultADC1\":[");
+          for (int i = 0; i < BUF_SIZE; i = i + 4) {
             Serial.print(adcbuffer_1[i]);
             Serial.print(",");
             Serial.print(adcbuffer_1[i + 1]);
@@ -117,19 +125,31 @@ void loop() {
           break;
         }
       case 2: {
-          digitalWrite(20, 0);
+          //Start a capture/conversion
+
+          //First, load the channels to sample from the command
+          for (int i(0); i < 4; ++i) {
+            ChannelsCfg_0[i] = 0x40 | json_in_root["ADC0Channels"][i].as<uint16_t>();
+            ChannelsCfg_1[i] = 0x40 | json_in_root["ADC1Channels"][i].as<int>();
+          }
+
+          pwm_pin = json_in_root["PWM_pin"];
+          pwm_pulse_width = json_in_root["PWMwidth"];
           pwm_counter = 0;
+          if (pwm_pin > -1)
+             digitalWrite(pwm_pin, 0);
           //Don't allow interrupts while we enable all the dma systems
           noInterrupts();
           dma0->enable();
           dma2->enable();
-          pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
+          if (pwm_pin > -1)
+            pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
           interrupts();
 
           jsonBuffer.clear(); //Save memory by clearing the jBuffer for reuse, we can't use json_in_root or anything from it after this though!
           JsonObject& json_out_root = jsonBuffer.createObject();
           json_out_root["Status"] = "Success";
-          json_out_root["CompileTime"] = __DATE__ " " __TIME__;
+
           json_out_root.printTo(Serial);
           break;
         }

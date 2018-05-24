@@ -89,7 +89,7 @@ with Controller() as com:
 
     while True:
         #Trigger a conversion
-        reply = com.send_json({"CMD":2})
+        reply = com.send_json({"CMD":2, "ADC0Channels":[6,6,6,6], "ADC1Channels":[4,4,4,4], "PWM_pin":20, "PWMwidth":4})
         if reply["Status"] != "Success":
             raise Exception("Failed to start conversion", reply)
         
@@ -99,17 +99,17 @@ with Controller() as com:
 
         data=[]
         i = 0
-        while i < len(reply["Result"]):
-            data.append(reply["Result"][i])
-            data.append(reply["Result"][i+1])
-            data.append(reply["Result"][i+2])
-            data.append(reply["Result"][i+3])
-            i += 8
+        while i < len(reply["ResultADC0"]):
+            data.append(reply["ResultADC0"][i])
+            data.append(reply["ResultADC0"][i+1])
+            data.append(reply["ResultADC0"][i+2])
+            data.append(reply["ResultADC0"][i+3])
+            i += 4
         li[0].set_ydata(data)
         li[0].set_xdata(range(len(data)))
         for i in range(4,8):
-            li[i].set_ydata(reply["Result"][i::8])
-            li[i].set_xdata(range(len(reply["Result"][i::8])))
+            li[i].set_ydata(reply["ResultADC1"][i::4])
+            li[i].set_xdata(range(len(reply["ResultADC1"][i::4])))
 
         ax.relim()
         ax.autoscale_view(True,True,True)
