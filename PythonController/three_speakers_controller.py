@@ -4,6 +4,7 @@ from matplotlib import style
 import time
 import re
 import numpy as np
+import math
 
 style.use('fivethirtyeight')
 
@@ -326,11 +327,11 @@ def calculate_distance(voltages, run_number):
     return distance
 
 
-distances_1 = []
-distances_2 = []
-distances_3 = []
 
 def average_distances(averages):
+    distances_1 = []
+    distances_2 = []
+    distances_3 = []
     
     for i in range(averages):
         distance_1_1 = calculate_distance(read_and_calculate_values(1) , 1)
@@ -351,12 +352,42 @@ def average_distances(averages):
     
     return np.average(distances_1), np.average(distances_2), np.average(distances_3),
                       
-   
-distance_1, distance_2, distance_3 = average_distances(5)
-      
-print("D1 1-2 = Average = ", "%.2f" % distance_1)
-print("D2 1-3 = Average = ", "%.2f" % distance_2)
-print("D3 2-3 = Average = ", "%.2f" % distance_3)
+
+
+
+fig = plt.figure()
+ax1 = fig.add_subplot(1,1,1)
+
+
+def animate(i):
+    
+
+    distance_1, distance_2, distance_3 = average_distances(2)
+          
+    print("D1 1-2 = Average = ", "%.2f" % distance_1)
+    print("D2 1-3 = Average = ", "%.2f" % distance_2)
+    print("D3 2-3 = Average = ", "%.2f" % distance_3)
+    
+    angle = math.acos((distance_1**2 + distance_2**2 - distance_3**2)/(2*distance_2*distance_1))
+    L = math.cos(angle)*distance_2
+    H = math.sin(angle)*distance_2
+    
+    x_values = [0, distance_1 , L]
+    y_values = [0, 0          , H]
+
+    
+    ax1.clear()
+    ax1.plot([x_values, y_values] ,'ro')
+    ax1.set_title('Locations of transducers')
+    ax1.set_xlabel('x axis m')
+    ax1.set_ylabel('y axis m')
+    ax1.legend()
+    
+
+
+ani = animation.FuncAnimation(fig, animate,  interval = 1500)
+plt.show
+
 
 
 
