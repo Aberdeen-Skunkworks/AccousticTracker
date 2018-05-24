@@ -1,7 +1,3 @@
-// Converted to only 1 buffer per ADC, reduced to a small example.
-//Based on Example by SaileNav
-
-
 #include "DMAChannel.h"
 #include "ADC.h"
 #include <ArduinoJson.h>
@@ -82,25 +78,25 @@ void loop() {
       case 1: {
           Serial.print("{\"Status\":\"Success\", \"Result\":[");
           for (int i = 0; i < BUF_SIZE; i = i + 4) {
-            Serial.print("[");
             Serial.print(adcbuffer_0[i]);
-            Serial.print(",");            
-            Serial.print(adcbuffer_0[i+1]);
-            Serial.print(",");            
-            Serial.print(adcbuffer_0[i+2]);
-            Serial.print(",");            
-            Serial.print(adcbuffer_0[i+3]);
-            Serial.print(",");            
+            Serial.print(",");
+            Serial.print(adcbuffer_0[i + 1]);
+            Serial.print(",");
+            Serial.print(adcbuffer_0[i + 2]);
+            Serial.print(",");
+            Serial.print(adcbuffer_0[i + 3]);
+            Serial.print(",");
             Serial.print(adcbuffer_1[i]);
-            Serial.print(",");            
-            Serial.print(adcbuffer_1[i+1]);
-            Serial.print(",");            
-            Serial.print(adcbuffer_1[i+2]);
-            Serial.print(",");            
-            Serial.print(adcbuffer_1[i+3]);
-            Serial.print("]");
+            Serial.print(",");
+            Serial.print(adcbuffer_1[i + 1]);
+            Serial.print(",");
+            Serial.print(adcbuffer_1[i + 2]);
+            Serial.print(",");
+            Serial.print(adcbuffer_1[i + 3]);
+            if (i != BUF_SIZE-4)
+               Serial.print(",");
           }
-          Serial.println("]}");
+          Serial.print("]}\n");
 
           digitalWrite(ledPin, HIGH);   // set the LED on
           delay(50);                  // wait for a second
@@ -119,17 +115,6 @@ void loop() {
     }
   }
 
-
-  while (0) {   //this is leftover from the original example, it no longer serves a purpose
-    uint8_t pin = 0;
-    if (d2_active) pin = 1;
-
-    if (pin > 0) {
-
-      d2_active = 0;
-    }
-  }
-
   digitalWrite(ledPin, HIGH);   // set the LED on
   delay(100);                  // wait for a second
   digitalWrite(ledPin, LOW);    // set the LED off
@@ -142,7 +127,7 @@ void setup_dma() {
   dma0->TCD->SOFF = 0;            // source increment each transfer (0=Don't move from the ADC result)
   dma0->TCD->ATTR = 0x101;        // [00000][001][00000][001] [Source Address Modulo=off][Source data size=1][Destination address modulo=0][Destination size=1] pg 554  Used for circular buffers, not needed here
   dma0->TCD->NBYTES = 2;          // bytes per transfer
-  dma0->TCD->SLAST = 0;           //SLAST 
+  dma0->TCD->SLAST = 0;           //SLAST
   dma0->TCD->DADDR = &adcbuffer_0[0];// where to write to
   dma0->TCD->DOFF = 2;
   dma0->TCD->DLASTSGA = -2 * BUF_SIZE;

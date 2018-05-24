@@ -17,13 +17,16 @@ class Controller():
         self.reset_buffer()
         self.com.write(json.dumps(out_json).encode())
         reply = self.com.readline()
+        while reply == b"":
+            reply = self.com.readline()
+            
         try:
             json_reply = json.loads(reply)
             if "Status" not in json_reply:
                 return json.loads({"Status":"Fail", "Error":"No status in the returned JSON", "Reply":json_reply})
             return json_reply
         except:
-            return {"Status":"Fail", "Error":"Could not parse reply string"}
+            return {"Status":"Fail", "Error":"Could not parse reply string", "Reply":reply}
         
     def __enter__(self):
         for port in self.serial_ports():
@@ -31,7 +34,7 @@ class Controller():
             self.com = serial.Serial(port=port, baudrate=115200, timeout=0.01)
             reply = self.send_json({"CMD":0})
             if reply["Status"] != "Success":
-                print("Failed! " + json.dumps(reply))
+                print("Failed! " + repr(reply))
                 continue
             print("Success! Arduino compiled at",reply["CompileTime"])
             break
@@ -78,5 +81,20 @@ class Controller():
         self.com.close()       
     
 with Controller() as com:
-    pass
-    #com.com.write('{"CMD":0}'.encode())
+    import matplotlib.pyplot as plt
+    import time
+    plt.ion()
+    ax = plt.gca()
+    li = [plt.plot([1,1])[0] for i in range(8)]
+    while True:
+        reply = com.send_json({"CMD":1})
+        if reply["Status"] != "Success":
+            raise Exception("Failed to download data", reply)
+        for i in range(8):
+            li[i].set_ydata(reply["Result"][i::8])
+            li[i].set_xdata(range(len(reply["Result"][i::8])))
+
+        ax.relim()
+        ax.autoscale_view(True,True,True)
+        plt.gcf().canvas.draw()
+        time.sleep(0.01)
