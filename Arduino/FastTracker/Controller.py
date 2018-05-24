@@ -97,5 +97,4 @@ with Controller() as com:
         ax.relim()
         ax.autoscale_view(True,True,True)
         plt.gcf().canvas.draw()
-        plt.draw()
-        time.sleep(0.01)
+        plt.pause(0.01)

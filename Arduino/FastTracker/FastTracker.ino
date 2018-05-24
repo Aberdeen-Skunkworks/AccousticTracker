@@ -115,10 +115,7 @@ void loop() {
     }
   }
 
-  digitalWrite(ledPin, HIGH);   // set the LED on
-  delay(100);                  // wait for a second
-  digitalWrite(ledPin, LOW);    // set the LED off
-  delay(100);
+  digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
 }
 
 void setup_dma() {
