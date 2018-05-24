@@ -377,7 +377,7 @@ def animate(i):
 
     
     ax1.clear()
-    ax1.plot(x_values, y_values ,'ro')
+    ax1.plot(x_values, y_values ,'ro', markersize=20)
     ax1.set_ylim(-0.5,10)
     ax1.set_xlim(-0.5,10)
     ax1.set_title('Locations of transducers')
