@@ -25,24 +25,15 @@ const int ledPin = 13;
 DMAMEM static volatile uint16_t __attribute__((aligned(BUF_SIZE + 0))) adcbuffer_0[BUF_SIZE];
 DMAMEM static volatile uint16_t __attribute__((aligned(BUF_SIZE + 0))) adcbuffer_1[BUF_SIZE];
 
-volatile int d2_active;
-
 void setup() {
   // initialize the digital pin as an output.
   pinMode(ledPin, OUTPUT);
   delay(500);
-
-  d2_active = 0;
-
-  pinMode(2, INPUT_PULLUP);
-  pinMode(4, OUTPUT);
-  pinMode(6, OUTPUT);
   
   analogWriteFrequency(20, 40000);
   analogWriteResolution(8);
   analogWrite(20, 128);
   
-  attachInterrupt(2, d2_isr, FALLING);
 
   Serial.begin(115200);
 
@@ -107,6 +98,21 @@ void loop() {
           digitalWrite(ledPin, LOW);    // set the LED off
           break;
         }
+        case 2: {
+          //Don't allow interrupts while we enable all the dma systems
+          noInterrupts();
+          dma0->enable();
+          dma2->enable();
+
+          interrupts();
+          
+          jsonBuffer.clear(); //Save memory by clearing the jBuffer for reuse, we can't use json_in_root or anything from it after this though!
+          JsonObject& json_out_root = jsonBuffer.createObject();
+          json_out_root["Status"] = "Success";
+          json_out_root["CompileTime"] = __DATE__ " " __TIME__;
+          json_out_root.printTo(Serial);
+          break;
+        }
       default: {
           jsonBuffer.clear(); //Save memory by clearing the jBuffer for reuse, we can't use json_in_root or anything from it after this though!
           JsonObject& json_out_root = jsonBuffer.createObject();
@@ -122,22 +128,34 @@ void loop() {
   digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
 }
 
+void dma0_isr(void) {
+  dma0->TCD->DADDR = &adcbuffer_0[0];
+  dma0->clearInterrupt();
+  //dma0->enable();
+}
+
+void dma2_isr(void) {
+  dma2->TCD->DADDR = &adcbuffer_1[0];
+  dma2->clearInterrupt();
+  //dma2->enable();
+}
+
 void setup_dma() {
-  dma0->begin(true);              // allocate the DMA channel
-  dma0->TCD->SADDR = &ADC0_RA;    // where to read from (The ADC result)
-  dma0->TCD->SOFF = 0;            // source increment each transfer (0=Don't move from the ADC result)
-  dma0->TCD->ATTR = 0x101;        // [00000][001][00000][001] [Source Address Modulo=off][Source data size=1][Destination address modulo=0][Destination size=1] pg 554  Used for circular buffers, not needed here
-  dma0->TCD->NBYTES = 2;          // bytes per transfer
-  dma0->TCD->SLAST = 0;           //SLAST
-  dma0->TCD->DADDR = &adcbuffer_0[0];// where to write to
-  dma0->TCD->DOFF = 2;
-  dma0->TCD->DLASTSGA = -2 * BUF_SIZE;
-  dma0->TCD->BITER = BUF_SIZE;
-  dma0->TCD->CITER = BUF_SIZE;
+  dma0->begin(true);                 // allocate the DMA channel (there are many, this just grabs the first free one)
+  dma0->TCD->SADDR = &ADC0_RA;       // where to read from (the ADC result register)
+  dma0->TCD->SOFF = 0;               // source increment each transfer (0=Don't move from the ADC result)
+  dma0->TCD->ATTR = 0x101;           // [00000][001][00000][001] [Source Address Modulo=off][Source data size=1][Destination address modulo=0][Destination size=1] pg 554  Used for circular buffers, not needed here
+  dma0->TCD->NBYTES = 2;             // bytes per transfer
+  dma0->TCD->SLAST = 0;              // Last source Address adjustment (what adjustment to add to the source address at completion of the major iteration count
+  dma0->TCD->DADDR = &adcbuffer_0[0];// Destination ADDRess (where to write to)
+  dma0->TCD->DOFF = 2;               // Destination address signed OFFset, how to update the destination after each write
+  dma0->TCD->DLASTSGA = -2 * BUF_SIZE; //Destination LAST adjustment, adjustment to make at the completion of the major iteration count.
+  dma0->TCD->BITER = BUF_SIZE;       // Starting major iteration count (should be the value of CITER)
+  dma0->TCD->CITER = BUF_SIZE;       // Current major iteration count (decremented each time the minor loop is completed)
   dma0->triggerAtHardwareEvent(DMAMUX_SOURCE_ADC0);
-  dma0->disableOnCompletion();    // require restart in code
-  dma0->interruptAtCompletion();
-  dma0->attachInterrupt(dma0_isr);
+  dma0->disableOnCompletion();       // require restart of the DMA engine in code
+  dma0->interruptAtCompletion();     // Call an interrupt when done
+  dma0->attachInterrupt(dma0_isr);   // This is the interrupt to call
 
   dma1->begin(true);              // allocate the DMA channel
   dma1->TCD->SADDR = &ChannelsCfg_0[0];
@@ -146,7 +164,7 @@ void setup_dma() {
   dma1->TCD->SLAST = -8;          // num ADC0 samples * 2
   dma1->TCD->BITER = 4;           // num of ADC0 samples
   dma1->TCD->CITER = 4;           // num of ADC0 samples
-  dma1->TCD->DADDR = &ADC0_SC1A;
+  dma1->TCD->DADDR = &ADC0_SC1A;  // By writing to the ADC0_SC1A register, a new conversion is started.
   dma1->TCD->DLASTSGA = 0;
   dma1->TCD->NBYTES = 2;
   dma1->TCD->DOFF = 0;
@@ -182,11 +200,8 @@ void setup_dma() {
   dma3->TCD->DOFF = 0;
   dma3->triggerAtTransfersOf(*dma2);
   dma3->triggerAtCompletionOf(*dma2);
-
-  dma0->enable();
+  
   dma1->enable();
-
-  dma2->enable();
   dma3->enable();
 }
 
@@ -212,28 +227,3 @@ void setup_adc() {
 
 }
 
-void d2_isr(void) {
-  if (debounce > 200) {
-    d2_active = 1;
-    debounce = 0;
-  }
-  else {
-    return;
-  }
-}
-
-void dma0_isr(void) {
-  dma0->TCD->DADDR = &adcbuffer_0[0];
-  dma0->clearInterrupt();
-  dma0->enable();
-  digitalWriteFast(4, HIGH);
-  digitalWriteFast(4, LOW);
-}
-
-void dma2_isr(void) {
-  dma2->TCD->DADDR = &adcbuffer_1[0];
-  dma2->clearInterrupt();
-  dma2->enable();
-  digitalWriteFast(6, HIGH);
-  digitalWriteFast(6, LOW);
-}

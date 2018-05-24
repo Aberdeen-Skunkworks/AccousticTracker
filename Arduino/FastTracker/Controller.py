@@ -86,7 +86,13 @@ with Controller() as com:
     #plt.ion()
     ax = plt.gca()
     li = [plt.plot([1,1], 'x-')[0] for i in range(8)]
+
     while True:
+        #Trigger a conversion
+        reply = com.send_json({"CMD":2})
+        if reply["Status"] != "Success":
+            raise Exception("Failed to start conversion", reply)
+        
         reply = com.send_json({"CMD":1})
         if reply["Status"] != "Success":
             raise Exception("Failed to download data", reply)
@@ -109,4 +115,3 @@ with Controller() as com:
         ax.autoscale_view(True,True,True)
         plt.gcf().canvas.draw()
         plt.pause(0.01)
-        plt.show()
