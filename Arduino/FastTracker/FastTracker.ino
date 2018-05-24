@@ -2,8 +2,8 @@
 #include "ADC.h"
 #include <ArduinoJson.h>
 
-#define ADC_conv_speed ADC_CONVERSION_SPEED::MED_SPEED
-#define ADC_samp_speed ADC_SAMPLING_SPEED::MED_SPEED
+#define ADC_conv_speed ADC_CONVERSION_SPEED::VERY_HIGH_SPEED
+#define ADC_samp_speed ADC_SAMPLING_SPEED::VERY_HIGH_SPEED
 
 #define BUF_SIZE 256
 
@@ -17,7 +17,7 @@ DMAChannel* dma3 = new DMAChannel(false);
 
 //ChannelsCfg order must be {CH1, CH2, CH3, CH0 }, adcbuffer output will be CH0, CH1, CH2, CH3
 //Order must be {Second . . . . . . . . First} no matter the number of channels used.
-const uint16_t ChannelsCfg_0 [] =  { 0x47, 0x4F, 0x44, 0x46 };  //ADC0: CH0 ad6(A6), CH1 ad7(A7), CH2 ad15(A8), CH3 ad4(A9)
+const uint16_t ChannelsCfg_0 [] =  { 0x46, 0x46, 0x46, 0x46 };  //ADC0: CH0 ad6(A6), CH1 ad7(A7), CH2 ad15(A8), CH3 ad4(A9)
 const uint16_t ChannelsCfg_1 [] =  { 0x45, 0x46, 0x47, 0x44 };  //ADC1: CH0 ad4(A17), CH1 ad5(A16), CH2ad6(A18), CH3 ad7(A19)
 
 const int ledPin = 13;
@@ -37,7 +37,11 @@ void setup() {
   pinMode(2, INPUT_PULLUP);
   pinMode(4, OUTPUT);
   pinMode(6, OUTPUT);
-
+  
+  analogWriteFrequency(20, 40000);
+  analogWriteResolution(8);
+  analogWrite(20, 128);
+  
   attachInterrupt(2, d2_isr, FALLING);
 
   Serial.begin(115200);
@@ -188,14 +192,14 @@ void setup_dma() {
 
 void setup_adc() {
   //ADC0
-  //adc->setAveraging(16, ADC_0); // set number of averages
+  adc->setAveraging(0, ADC_0); // set number of averages
   adc->adc0->setResolution(12); // set bits of resolution
   adc->setConversionSpeed(ADC_conv_speed, ADC_0); // change the conversion speed
   adc->setSamplingSpeed(ADC_samp_speed, ADC_0); // change the sampling speed
   adc->adc0->setReference(ADC_REFERENCE::REF_3V3);
 
   //ADC1
-  //adc->setAveraging(16, ADC_1); // set number of averages
+  adc->setAveraging(0, ADC_1); // set number of averages
   adc->adc1->setResolution(12); // set bits of resolution
   adc->setConversionSpeed(ADC_conv_speed, ADC_1); // change the conversion speed
   adc->setSamplingSpeed(ADC_samp_speed, ADC_1); // change the sampling speed

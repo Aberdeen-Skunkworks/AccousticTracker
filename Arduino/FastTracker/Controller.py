@@ -83,14 +83,25 @@ class Controller():
 with Controller() as com:
     import matplotlib.pyplot as plt
     import time
-    plt.ion()
+    #plt.ion()
     ax = plt.gca()
-    li = [plt.plot([1,1])[0] for i in range(8)]
+    li = [plt.plot([1,1], 'x-')[0] for i in range(8)]
     while True:
         reply = com.send_json({"CMD":1})
         if reply["Status"] != "Success":
             raise Exception("Failed to download data", reply)
-        for i in range(8):
+
+        data=[]
+        i = 0
+        while i < len(reply["Result"]):
+            data.append(reply["Result"][i])
+            data.append(reply["Result"][i+1])
+            data.append(reply["Result"][i+2])
+            data.append(reply["Result"][i+3])
+            i += 8
+        li[0].set_ydata(data)
+        li[0].set_xdata(range(len(data)))
+        for i in range(4,8):
             li[i].set_ydata(reply["Result"][i::8])
             li[i].set_xdata(range(len(reply["Result"][i::8])))
 
@@ -98,3 +109,4 @@ with Controller() as com:
         ax.autoscale_view(True,True,True)
         plt.gcf().canvas.draw()
         plt.pause(0.01)
+        plt.show()
