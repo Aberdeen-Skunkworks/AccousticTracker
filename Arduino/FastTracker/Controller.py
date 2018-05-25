@@ -109,7 +109,16 @@ def correlation(signal, target_wave, plot = False):
     
     return maxindex, correlation_signal
 
-
+target = [-62.43359375, -40.43359375, -7.43359375, 34.56640625, 60.56640625, 80.56640625, 71.56640625, 44.56640625, 4.56640625, -38.43359375,
+-70.43359375, -85.43359375, -78.43359375, -52.43359375, -9.43359375, 37.56640625, 77.56640625, 98.56640625, 92.56640625, 63.56640625,
+13.56640625, -39.43359375, -80.43359375, -101.4335938, -94.43359375, -64.43359375, -15.43359375, 39.56640625, 80.56640625, 103.5664063,
+95.56640625, 65.56640625, 16.56640625, -37.43359375, -81.43359375, -105.4335938, -98.43359375, -70.43359375, -22.43359375, 32.56640625,
+79.56640625, 103.5664063, 101.5664063, 72.56640625, 22.56640625, -33.43359375, -77.43359375, -103.4335938, -100.4335938, -71.43359375,
+-24.43359375, 29.56640625, 75.56640625, 99.56640625, 97.56640625, 70.56640625, 19.56640625, -29.43359375, -72.43359375, -96.43359375,
+-93.43359375, -65.43359375, -20.43359375, 30.56640625,70.56640625, 89.56640625, 86.56640625, 58.56640625, 16.56640625, -28.43359375,
+-66.43359375, -88.43359375, -84.43359375, -57.43359375, -16.43359375, 29.56640625, 65.56640625, 81.56640625, 77.56640625, 51.56640625,
+12.56640625, -27.43359375, -63.43359375, -79.43359375, -74.43359375, -50.43359375, -14.43359375, 26.56640625, 57.56640625, 72.56640625,
+66.56640625, 41.56640625, 2.56640625, -33.43359375, -59.43359375, -72.43359375, -65.43359375, -39.43359375, -4.43359375]
 
 
 with Controller() as com:
@@ -157,16 +166,19 @@ with Controller() as com:
         li[1].set_ydata(data)
         li[1].set_xdata(range(len(data)))
         
-        sample_number_of_echo, correlation_signal = correlation(data, target_wave)
-        correlation_signal = np.multiply(correlation_signal, 0.0001)
+        sample_number_of_echo, correlation_signal = correlation(data, target)
+        correlation_signal = np.multiply(correlation_signal, 0.001)
         li[2].set_ydata(correlation_signal)
         li[2].set_xdata(range(len(correlation_signal)))
         
         time_to_first_echo = (sample_number_of_echo)/(480000)
-        distance_between_transducers = 343 * time_to_first_echo * 100 # in cm
+        distance_between_transducers = (343 * time_to_first_echo * 100) -5.86  # in cm
+        print("Sample Number = ", sample_number_of_echo)
         print("Distance = ", "%.2f" % distance_between_transducers, " cm")
+
         
         ax.relim()
         ax.autoscale_view(True,True,True)
         plt.gcf().canvas.draw()
         plt.pause(0.01)
+        

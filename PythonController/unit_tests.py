@@ -8,7 +8,7 @@ def test_correlation(passed = False):
     import math
     import functions
     # Try increasing the noise!
-    noise_stddev = 0.2
+    noise_stddev = 1
     dt = 0.1
     tmax = 100
     steps = int(tmax/dt)
@@ -34,7 +34,7 @@ def test_correlation(passed = False):
     # can find "similar" signals)
     target_wave=[2 * (v>0) - 1 for v in clean_signal]
 
-    test_result = functions.correlation(signal, target_wave, plot = False)[0] ## Change plot to true to plot functions
+    test_result = functions.correlation(signal, target_wave, plot = True)[0] ## Change plot to true to plot functions
     
     if test_result != 150:
         print("Error: correlation test function failed")
@@ -55,4 +55,6 @@ if test_correlation():
 else:
     print("Some tests failed: See above errors")
     
+
+
 
