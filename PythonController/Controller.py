@@ -81,33 +81,8 @@ class Controller():
         self.com.close()   
         
 
+from Functions import correlation
 
-def correlation(signal, target_wave, plot = False):
-    """ Correlation function that takes in both a signal and a target wave signal and performes a correlation funciton on them. 
-    It will output the index of the signal where the waves correlate most. Comment out the plotting lines to see the correlation plotted.
-    """
-    import numpy as np
-   
-    #Correlate the signal and target wave
-    correlation_signal = []
-    for i in range(len(signal) - len(target_wave)):
-       csum = 0
-       for j in range(len(target_wave)):
-           csum += signal[i + j] * target_wave[j]
-       correlation_signal.append(csum)
-    
-    # Show the correlator function and both waves on the same plot
-    if plot:
-        import matplotlib.pyplot as plt
-        plt.plot(correlation_signal, linewidth=0.5)
-        plt.plot(signal, linewidth=0.5)
-        plt.plot(target_wave, linewidth=0.5)
-        plt.show()
-
-    #Find the highest correlation index
-    maxindex = np.argmax(correlation_signal)
-    
-    return maxindex, correlation_signal
 
 target = [-62.43359375, -40.43359375, -7.43359375, 34.56640625, 60.56640625, 80.56640625, 71.56640625, 44.56640625, 4.56640625, -38.43359375,
 -70.43359375, -85.43359375, -78.43359375, -52.43359375, -9.43359375, 37.56640625, 77.56640625, 98.56640625, 92.56640625, 63.56640625,
@@ -172,7 +147,7 @@ with Controller() as com:
         li[2].set_xdata(range(len(correlation_signal)))
         
         time_to_first_echo = (sample_number_of_echo)/(480000)
-        distance_between_transducers = (343 * time_to_first_echo * 100) -5.86  # in cm
+        distance_between_transducers = (343 * time_to_first_echo * 100) -5.79  # in cm
         print("Sample Number = ", sample_number_of_echo)
         print("Distance = ", "%.2f" % distance_between_transducers, " cm")
 
