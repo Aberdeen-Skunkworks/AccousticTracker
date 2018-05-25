@@ -50,6 +50,10 @@ def target_wave():
                      
                                  
 def digital_pin_to_sc1a(ADC, pin):
+    """
+    Function to take in which ADC you want to use on the teensy and a digital output pin number and returns the sc1a number that the ADC uses to label the pins
+    It will raise an exeption if an invalid pin is chosen or invalid ADC number.
+    """
     if ADC == 0:
     
         # Index is digital pin - value is sc1a number
@@ -61,7 +65,7 @@ def digital_pin_to_sc1a(ADC, pin):
         None , None , None , 3 , None , 23 , None , 1 , None , 26]
         
         if pin > len(sc1a):
-            raise Exception("Error: Please choose valid digital pin less than 71")
+            raise Exception("Error: Please choose valid digital pin less than 70")
         elif sc1a[pin] == None:
             raise Exception("Error: ADC:0 is not connected to this pin")
         else:
@@ -81,7 +85,7 @@ def digital_pin_to_sc1a(ADC, pin):
         if pin > len(sc1a):
             raise Exception("Error: Please choose valid digital pin less than 71")
         elif sc1a[pin] == None:
-            raise Exception("Error: ADC:0 is not connected to this pin")
+            raise Exception("Error: ADC:1 is not connected to this pin")
         else:
             return  sc1a[pin]
 
