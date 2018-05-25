@@ -24,7 +24,7 @@ with Controller() as com:
 
     while True:
         #Trigger a conversion
-        reply = com.send_json({"CMD":2, "ADC0Channels":[4,4,4,4], "ADC1Channels":[9,9,9,9], "PWM_pin":20, "PWMwidth":8})
+        reply = com.send_json({"CMD":2, "ADC0Channels":[4,4,4,4], "ADC1Channels":[7,7,7,7], "PWM_pin":23, "PWMwidth":8})
         if reply["Status"] != "Success":
             raise Exception("Failed to start conversion", reply)
         
@@ -87,7 +87,9 @@ def read_voltages_two_pins_fastest(command):
     {"CMD":2, "ADC0Channels":[4,4,4,4], "ADC1Channels":[9,9,9,9], "PWM_pin":20, "PWMwidth":8}
     - Where command 2 tells the teensy board that you want to read pins.
     - The ADC channel numbers correspond to pins on the teensy and must be accesable by that ADC or it wont work as intended.
-    - This mode takes each ADC to read 
+    - This mode is for both ADC's to read only 1 pin each so that the highest reading resolution possible is atchieved.
+    - It is possible on a few pins to read with both ADC's therefore to test if they are giving the same outputs can be setupt to read the same signal.
+    - The PWM pin takes the digital pin number of the 
     """
     
     # Check that all ADC channels are the same for each ADC in the command

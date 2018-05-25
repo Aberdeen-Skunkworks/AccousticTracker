@@ -44,3 +44,77 @@ def target_wave():
 12.56640625, -27.43359375, -63.43359375, -79.43359375, -74.43359375, -50.43359375, -14.43359375, 26.56640625, 57.56640625, 72.56640625,
 66.56640625, 41.56640625, 2.56640625, -33.43359375, -59.43359375, -72.43359375, -65.43359375, -39.43359375, -4.43359375]
     return target
+
+
+
+                     
+                                 
+def digital_pin_to_sc1a(ADC, pin):
+    if ADC == 0:
+    
+        # Index is digital pin - value is sc1a number
+        sc1a = [None , None , None , None , None , None , None , None , None , None , 
+        None , None , None , None , 5 , 14 , 8 , 9 , 13 , 2 , 6 , 7 , 15 , 4 , None , 
+        None , None , None , None , None , None , None , None , 17 , 18 , None , None , 
+        None , None , None , None , None , None , None , None , None , None , None , None , 
+        None , None , None , None , None , None , None , None , None , None , None , None , 
+        None , None , None , 3 , None , 23 , None , 1 , None , 26]
+        
+        if pin > len(sc1a):
+            raise Exception("Error: Please choose valid digital pin less than 71")
+        elif sc1a[pin] == None:
+            raise Exception("Error: ADC:0 is not connected to this pin")
+        else:
+            return  sc1a[pin]
+            
+
+    
+    elif ADC == 1:
+        # Index is digital pin - value is sc1a number  
+        sc1a = [None , None , None , None , None , None , None , None , None , None , 
+        None , None , None , None , None , None , None , None , None , None , None , None , 
+        None , None , None , None , None , None , None , None , None , 14 , 15 , None , 
+        None , 4 , 5 , 6 , 7 , 17 , None , None , None , None , None , None , None , None , 
+        None , 10 , 11 , None , None , None , None , None , None , None , None , None , None , 
+        None , None , None , None , 19 , None , 23 , None , 1 , None , 18]
+        
+        if pin > len(sc1a):
+            raise Exception("Error: Please choose valid digital pin less than 71")
+        elif sc1a[pin] == None:
+            raise Exception("Error: ADC:0 is not connected to this pin")
+        else:
+            return  sc1a[pin]
+
+    else:
+        raise Exception("Error: Please choose either ADC:0 or ADC:1")
+        
+
+
+
+
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
