@@ -184,14 +184,19 @@ void loop() {
 }
 
 void setup_dma() {
+  //This sets up the DMA controllers to run the ADCs and transfer out the data
+  //dma0/dma2 are responsible for copying out the ADC results when ADC0/ADC1 finishes
+  //dma1/dma3 then copy a new configuration into the ADC after dma0/dma2 completes its copy. This allows us to change the pin being read, but also starts the next ADC conversion. 
+  
+  
   dma0->begin(true);                 // allocate the DMA channel (there are many, this just grabs the first free one)
   dma0->TCD->SADDR = &ADC0_RA;       // where to read from (the ADC result register)
   dma0->TCD->SOFF = 0;               // source increment each transfer (0=Don't move from the ADC result)
   dma0->TCD->ATTR = 0x101;           // [00000][001][00000][001] [Source Address Modulo=off][Source data size=1][Destination address modulo=0][Destination size=1] pg 554  Used for circular buffers, not needed here
   dma0->TCD->NBYTES = 2;             // bytes per transfer
-  dma0->TCD->SLAST = 0;              // Last source Address adjustment (what adjustment to add to the source address at completion of the major iteration count
+  dma0->TCD->SLAST = 0;              // Last source Address adjustment (what adjustment to add to the source address at completion of the major iteration count), again, don't move
   dma0->TCD->DADDR = &adcbuffer_0[0];// Destination ADDRess (where to write to)
-  dma0->TCD->DOFF = 2;               // Destination address signed OFFset, how to update the destination after each write
+  dma0->TCD->DOFF = 2;               // Destination address signed OFFset, how to update the destination after each write, 2 bytes as its a 16bit int
   dma0->TCD->DLASTSGA = -2 * BUF_SIZE; //Destination LAST adjustment, adjustment to make at the completion of the major iteration count.
   dma0->TCD->BITER = BUF_SIZE;       // Starting major iteration count (should be the value of CITER)
   dma0->TCD->CITER = BUF_SIZE;       // Current major iteration count (decremented each time the minor loop is completed)
