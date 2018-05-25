@@ -121,7 +121,7 @@ with Controller() as com:
 
     while True:
         #Trigger a conversion
-        reply = com.send_json({"CMD":2, "ADC0Channels":[4,4,4,4], "ADC1Channels":[9,9,9,9], "PWM_pin":20, "PWMwidth":4})
+        reply = com.send_json({"CMD":2, "ADC0Channels":[4,4,4,4], "ADC1Channels":[9,9,9,9], "PWM_pin":20, "PWMwidth":8})
         if reply["Status"] != "Success":
             raise Exception("Failed to start conversion", reply)
         
@@ -142,7 +142,7 @@ with Controller() as com:
         li[0].set_xdata(range(len(data)))
 
         target_wave = []
-        for i in range(int(75)):
+        for i in range(int(55)):
             target_wave.append(data[i])
 
         i = 0    
