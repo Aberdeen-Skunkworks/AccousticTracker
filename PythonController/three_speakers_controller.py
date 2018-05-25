@@ -362,7 +362,7 @@ ax1 = fig.add_subplot(1,1,1)
 def animate(i):
     
 
-    distance_1, distance_2, distance_3 = average_distances(2)
+    distance_1, distance_2, distance_3 = average_distances(4)
           
     print("D1 1-2 = Average = ", "%.2f" % distance_1)
     print("D2 1-3 = Average = ", "%.2f" % distance_2)

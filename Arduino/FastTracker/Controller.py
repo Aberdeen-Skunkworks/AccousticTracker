@@ -78,8 +78,10 @@ class Controller():
         return result
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.com.close()       
-    
+        self.com.close()   
+        
+
+
 with Controller() as com:
     import matplotlib.pyplot as plt
     import time
@@ -89,7 +91,7 @@ with Controller() as com:
 
     while True:
         #Trigger a conversion
-        reply = com.send_json({"CMD":2, "ADC0Channels":[6,6,6,6], "ADC1Channels":[4,4,4,4], "PWM_pin":20, "PWMwidth":4})
+        reply = com.send_json({"CMD":2, "ADC0Channels":[4,4,4,4], "ADC1Channels":[9,9,9,9], "PWM_pin":20, "PWMwidth":4})
         if reply["Status"] != "Success":
             raise Exception("Failed to start conversion", reply)
         
@@ -107,9 +109,18 @@ with Controller() as com:
             i += 4
         li[0].set_ydata(data)
         li[0].set_xdata(range(len(data)))
-        for i in range(4,8):
-            li[i].set_ydata(reply["ResultADC1"][i::4])
-            li[i].set_xdata(range(len(reply["ResultADC1"][i::4])))
+        i = 0
+        
+        data=[]
+        while i < len(reply["ResultADC1"]):
+            data.append(reply["ResultADC1"][i])
+            data.append(reply["ResultADC1"][i+1])
+            data.append(reply["ResultADC1"][i+2])
+            data.append(reply["ResultADC1"][i+3])
+            i += 4
+
+        li[1].set_ydata(data)
+        li[1].set_xdata(range(len(data)))
 
         ax.relim()
         ax.autoscale_view(True,True,True)
