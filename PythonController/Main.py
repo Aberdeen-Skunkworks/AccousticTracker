@@ -81,48 +81,56 @@ with Controller() as com:
         
 
 
-def read_and_calculate_values(run_number):
-    with Controller() as ctr:
-        ctr.send_start(run_number)
-        voltages_1 = []
-        for pages in range(number_of_pages):
-            if run_number == 1 or run_number == 2:
-                ctr.send_print_speaker_1()
-            elif run_number == 3 or run_number == 4:
-                ctr.send_print_speaker_3()
-            elif run_number == 5 or run_number == 6:
-                ctr.send_print_speaker_3()
-            else:
-                raise Exception('Pick a run number between 1 and 6')
+def read_voltages_two_pins_fastest(command):
+    """
+    Takes in a command formatted as:
+    {"CMD":2, "ADC0Channels":[4,4,4,4], "ADC1Channels":[9,9,9,9], "PWM_pin":20, "PWMwidth":8}
+    - Where command 2 tells the teensy board that you want to read pins.
+    - The ADC channel numbers correspond to pins on the teensy and must be accesable by that ADC or it wont work as intended.
+    - This mode takes each ADC to read 
+    """
+    
+    # Check that all ADC channels are the same for each ADC in the command
+    ADC0_channels = command["ADC0Channels"]
+    ADC1_channels = command["ADC1Channels"]
+    for i in range(len(ADC0_channels)):
+        if ADC0_channels[0] != ADC0_channels[i] or ADC1_channels[0] != ADC1_channels[i]:
+            raise Exception("This mode requires all channels of each individual ADC to be the same")
             
-            list_of_serial_reads = ctr.read()
-            if len(list_of_serial_reads) == 0:
-                print("Error no data read in read_and_calculate_values")
-            else:
-                for i in range(len(list_of_serial_reads)):
-                    int_value = int(list_of_serial_reads[i])
-                    voltages_1.append((int_value*3.3)/(2**adc_resolution))
-                
-        voltages_2 = []
-        for pages in range(number_of_pages):
-            if run_number == 1 or run_number == 2:
-                ctr.send_print_speaker_2()
-            elif run_number == 3 or run_number == 4:
-                ctr.send_print_speaker_1()
-            elif run_number == 5 or run_number == 6:
-                ctr.send_print_speaker_2()
-            else:
-                raise Exception('Pick a run number between 1 and 6')   
-                
-            list_of_serial_reads = ctr.read()
-            if len(list_of_serial_reads) == 0:
-                print("Error no data read in read_and_calculate_values")
-            else:
-                for i in range(len(list_of_serial_reads)):
-                    int_value = int(list_of_serial_reads[i])
-                    voltages_2.append((int_value*3.3)/(2**adc_resolution))
-            
-    return voltages_1, voltages_2
+    # Send commands to the teensy board using json and check if the correct response is recieved
+    reply = com.send_json(command)
+    if reply["Status"] != "Success":
+        raise Exception("Failed to start conversion", reply)
+    
+    reply = com.send_json({"CMD":1}) # command 1 askes the board to dump the buffer out on the serial line
+    if reply["Status"] != "Success":
+        raise Exception("Failed to download data", reply)
+
+    # Initialise the output arrays and then loop through the result format to save the buffer output values into a single array
+    adc_0_output=[]
+    i = 0
+    while i < len(reply["ResultADC0"]):
+        adc_0_output.append(reply["ResultADC0"][i])
+        adc_0_output.append(reply["ResultADC0"][i+1])
+        adc_0_output.append(reply["ResultADC0"][i+2])
+        adc_0_output.append(reply["ResultADC0"][i+3])
+        i += 4
+
+    adc_1_output=[]
+    i = 0
+    while i < len(reply["ResultADC1"]):
+        adc_1_output.append(reply["ResultADC1"][i])
+        adc_1_output.append(reply["ResultADC1"][i+1])
+        adc_1_output.append(reply["ResultADC1"][i+2])
+        adc_1_output.append(reply["ResultADC1"][i+3])
+        i += 4
+        
+    # Subtracting the average of the adc outputs from each value so that the range changes from 0,4096 to roughly -2048,2048
+    adc_0_output = np.subtract(adc_0_output,np.average(adc_0_output))
+    adc_1_output = np.subtract(adc_1_output,np.average(adc_1_output))
+
+    return adc_0_output, adc_1_output
+    
 
 
 
