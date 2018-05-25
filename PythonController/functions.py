@@ -72,7 +72,6 @@ def digital_pin_to_sc1a(ADC, pin):
             return  sc1a[pin]
             
 
-    
     elif ADC == 1:
         # Index is digital pin - value is sc1a number  
         sc1a = [None , None , None , None , None , None , None , None , None , None , 

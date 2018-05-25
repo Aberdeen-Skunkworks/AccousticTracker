@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 import serial
+from Functions import digital_pin_to_sc1a
 
 class Controller():
     def __init__(self):
@@ -13,7 +14,21 @@ class Controller():
         reply. This function always returns a dict with a Status key,
         even if there's an error parsing the reply. It guarantees that
         the Status from the reply is set too.
+        command format example: {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":23, "PWMwidth":8}
         """
+        # Convert the digital pin numbers given from the user to sc1a pin numbers used by the ADC's to send to the teensy board
+        if out_json["CMD"] == 2:
+            ADC_0_sc1a_pins = []
+            ADC_1_sc1a_pins = []
+            for i in range(4):
+                ADC_0_digital_pins = out_json["ADC0Channels"]
+                ADC_1_digital_pins = out_json["ADC1Channels"]
+                ADC_0_sc1a_pins.append(digital_pin_to_sc1a( 0, ADC_0_digital_pins[i]) )
+                ADC_1_sc1a_pins.append(digital_pin_to_sc1a( 1, ADC_1_digital_pins[i]) )
+                
+            out_json["ADC0Channels"] = ADC_0_sc1a_pins
+            out_json["ADC1Channels"] = ADC_1_sc1a_pins
+        
         self.reset_buffer()
         self.com.write(json.dumps(out_json).encode())
         reply = self.com.readline()
