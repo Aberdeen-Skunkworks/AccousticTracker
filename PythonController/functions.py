@@ -1,3 +1,5 @@
+## Functions used in the main acoustic tracker program
+
 
 def correlation(signal, target_wave, plot = False):
     """ Correlation function that takes in both a signal and a target wave signal and performes a correlation funciton on them. 
@@ -13,7 +15,7 @@ def correlation(signal, target_wave, plot = False):
            csum += signal[i + j] * target_wave[j]
        correlation_signal.append(csum)
     
-    # Show the correlator function and both waves on the same plot
+    # Show the correlator function and both waves on the same plot if the user sets plot to True.
     if plot:
         import matplotlib.pyplot as plt
         plt.plot(correlation_signal, linewidth=0.5)
