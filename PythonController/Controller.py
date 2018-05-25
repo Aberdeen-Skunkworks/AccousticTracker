@@ -176,7 +176,10 @@ with Controller() as com:
         print("Sample Number = ", sample_number_of_echo)
         print("Distance = ", "%.2f" % distance_between_transducers, " cm")
 
+        li[3].set_ydata([-5000,5000])
+        li[3].set_xdata([sample_number_of_echo,sample_number_of_echo])
         
+        ax.set_ylim([-2100,2100]) 
         ax.relim()
         ax.autoscale_view(True,True,True)
         plt.gcf().canvas.draw()
