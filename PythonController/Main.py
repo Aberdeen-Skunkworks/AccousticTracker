@@ -10,143 +10,22 @@ import math
 from Controller import Controller
 from Functions import correlation
 from Functions import target_wave
+from Functions import read_voltages_two_pins_fastest
 
 
 # Define the target wave, for the correlation funciton, as the saved recieved wave.
 target = target_wave()
 
-with Controller() as com:
-    import matplotlib.pyplot as plt
-    import time
-    #plt.ion()
-    ax = plt.gca()
-    li = [plt.plot([1,1], 'x-')[0] for i in range(8)]
 
-    while True:
-        #Trigger a conversion
-        reply = com.send_json({"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":23, "PWMwidth":8})
-        if reply["Status"] != "Success":
-            raise Exception("Failed to start conversion", reply)
-        
-        reply = com.send_json({"CMD":1})
-        if reply["Status"] != "Success":
-            raise Exception("Failed to download data", reply)
-
-        data=[]
-        i = 0
-        while i < len(reply["ResultADC0"]):
-            data.append(reply["ResultADC0"][i])
-            data.append(reply["ResultADC0"][i+1])
-            data.append(reply["ResultADC0"][i+2])
-            data.append(reply["ResultADC0"][i+3])
-            i += 4
-        data = np.subtract(data,np.average(data))
-        li[0].set_ydata(data)
-        li[0].set_xdata(range(len(data)))
-
-        target_wave = []
-        for i in range(int(55)):
-            target_wave.append(data[i])
-
-        i = 0    
-        data=[]
-        while i < len(reply["ResultADC1"]):
-            data.append(reply["ResultADC1"][i])
-            data.append(reply["ResultADC1"][i+1])
-            data.append(reply["ResultADC1"][i+2])
-            data.append(reply["ResultADC1"][i+3])
-            i += 4
-        data = np.subtract(data,np.average(data))
-        li[1].set_ydata(data)
-        li[1].set_xdata(range(len(data)))
-        
-        sample_number_of_echo, correlation_signal = correlation(data, target)
-        correlation_signal = np.multiply(correlation_signal, 0.001)
-        li[2].set_ydata(correlation_signal)
-        li[2].set_xdata(range(len(correlation_signal)))
-        
-        time_to_first_echo = (sample_number_of_echo)/(480000)
-        distance_between_transducers = (343 * time_to_first_echo * 100) -5.79  # in cm
-        print("Sample Number = ", sample_number_of_echo)
-        print("Distance = ", "%.2f" % distance_between_transducers, " cm")
-
-        li[3].set_ydata([-5000,5000])
-        li[3].set_xdata([sample_number_of_echo,sample_number_of_echo])
-        
-        ax.set_ylim([-2100,2100]) 
-        ax.relim()
-        ax.autoscale_view(True,True,True)
-        plt.gcf().canvas.draw()
-        plt.pause(0.01)
-        
-
-
-def read_voltages_two_pins_fastest(command):
-    """
-    Takes in a command formatted as:
-    {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":23, "PWMwidth":8}
-    - Where command 2 tells the teensy board that you want to read pins.
-    - The ADC channel numbers correspond to pins on the teensy and must be accesable by that ADC or it wont work as intended.
-    - The command takes the digital pin numbers and converts them automatically to sc1a numbers and checks whether or not the corresponding ADC can use that pin
-    - This mode is for both ADC's to read only 1 pin each so that the highest reading resolution possible is atchieved.
-    - It is possible on a few pins to read with both ADC's therefore to test if they are giving the same outputs can be setupt to read the same signal.
-    - The PWM pin takes the digital pin number of the 
-    """
-    
-    # Check that all ADC channels are the same for each ADC in the command
-    ADC0_channels = command["ADC0Channels"]
-    ADC1_channels = command["ADC1Channels"]
-    for i in range(len(ADC0_channels)):
-        if ADC0_channels[0] != ADC0_channels[i] or ADC1_channels[0] != ADC1_channels[i]:
-            raise Exception("This mode requires all channels of each individual ADC to be the same")
-            
-    # Send commands to the teensy board using json and check if the correct response is recieved
-    reply = com.send_json(command)
-    if reply["Status"] != "Success":
-        raise Exception("Failed to start conversion", reply)
-    
-    reply = com.send_json({"CMD":1}) # command 1 askes the board to dump the buffer out on the serial line
-    if reply["Status"] != "Success":
-        raise Exception("Failed to download data", reply)
-
-    # Initialise the output arrays and then loop through the result format to save the buffer output values into a single array
-    adc_0_output=[]
-    i = 0
-    while i < len(reply["ResultADC0"]):
-        adc_0_output.append(reply["ResultADC0"][i])
-        adc_0_output.append(reply["ResultADC0"][i+1])
-        adc_0_output.append(reply["ResultADC0"][i+2])
-        adc_0_output.append(reply["ResultADC0"][i+3])
-        i += 4
-
-    adc_1_output=[]
-    i = 0
-    while i < len(reply["ResultADC1"]):
-        adc_1_output.append(reply["ResultADC1"][i])
-        adc_1_output.append(reply["ResultADC1"][i+1])
-        adc_1_output.append(reply["ResultADC1"][i+2])
-        adc_1_output.append(reply["ResultADC1"][i+3])
-        i += 4
-        
-    # Subtracting the average of the adc outputs from each value so that the range changes from 0,4096 to roughly -2048,2048
-    adc_0_output = np.subtract(adc_0_output,np.average(adc_0_output))
-    adc_1_output = np.subtract(adc_1_output,np.average(adc_1_output))
-
-    return adc_0_output, adc_1_output
-    
-
-
-
-def average_waves(averages): ### Need to find a better way of doing averaging this is not good
+def average_waves(averages, command): ### Need to find a better way of doing averaging this is not good
     """ Take in how many waves to average and output the average of those waves.
     """
     import numpy as np
-    
     list_voltages_1 = []
     list_voltages_2 = []
     
     for iteration in range(averages):
-        voltages = read_and_calculate_values()
+        voltages = read_voltages_two_pins_fastest(command.copy())
         list_voltages_1.append(voltages[0])
         list_voltages_2.append(voltages[1])
     
@@ -154,6 +33,51 @@ def average_waves(averages): ### Need to find a better way of doing averaging th
     voltages_2 = np.average(list_voltages_2,axis = 0)
 
     return voltages_1, voltages_2
+
+
+
+import matplotlib.pyplot as plt
+import time
+#plt.ion()
+ax = plt.gca()
+li = [plt.plot([1,1], 'x-')[0] for i in range(8)]
+
+while True:
+    #Trigger a conversion
+    command = {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":23, "PWMwidth":6}
+    voltages_adc_0, voltages_adc_1 = average_waves(5,command)
+    
+    li[0].set_ydata(voltages_adc_0)
+    li[0].set_xdata(range(len(voltages_adc_0)))
+
+    li[1].set_ydata(voltages_adc_1)
+    li[1].set_xdata(range(len(voltages_adc_1)))
+    
+    sample_number_of_echo, correlation_signal = correlation(voltages_adc_1, target)
+    correlation_signal = np.multiply(correlation_signal, 0.001)
+    li[2].set_ydata(correlation_signal)
+    li[2].set_xdata(range(len(correlation_signal)))
+    
+    time_to_first_echo = (sample_number_of_echo)/(480000)
+    distance_between_transducers = (343 * time_to_first_echo * 100) -5.79  # in cm
+    print("Sample Number = ", sample_number_of_echo)
+    print("Distance = ", "%.2f" % distance_between_transducers, " cm")
+
+    li[3].set_ydata([-5000,5000])
+    li[3].set_xdata([sample_number_of_echo,sample_number_of_echo])
+    li[3].set_label("%.2f" % distance_between_transducers)
+    
+    ax.set_ylim([-2100,2100]) 
+    ax.relim()
+    ax.autoscale_view(True,True,True)
+    plt.gcf().canvas.draw()
+    plt.pause(0.01)
+    
+
+
+
+    
+
 
 
 

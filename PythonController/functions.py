@@ -94,7 +94,61 @@ def digital_pin_to_sc1a(ADC, pin):
 
 
 
-
+def read_voltages_two_pins_fastest(command):
+    import numpy as np
+    from Controller import Controller
+    with Controller() as com:
+        """
+        Takes in a command formatted as:
+        {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":23, "PWMwidth":8}
+        - Where command 2 tells the teensy board that you want to read pins.
+        - The ADC channel numbers correspond to pins on the teensy and must be accesable by that ADC or it wont work as intended.
+        - The command takes the digital pin numbers and converts them automatically to sc1a numbers and checks whether or not the corresponding ADC can use that pin
+        - This mode is for both ADC's to read only 1 pin each so that the highest reading resolution possible is atchieved.
+        - It is possible on a few pins to read with both ADC's therefore to test if they are giving the same outputs can be setupt to read the same signal.
+        - The PWM pin takes the digital pin number of the 
+        """
+        
+        # Check that all ADC channels are the same for each ADC in the command
+        ADC0_channels = command["ADC0Channels"]
+        ADC1_channels = command["ADC1Channels"]
+        for i in range(len(ADC0_channels)):
+            if ADC0_channels[0] != ADC0_channels[i] or ADC1_channels[0] != ADC1_channels[i]:
+                raise Exception("This mode requires all channels of each individual ADC to be the same")
+                
+        # Send commands to the teensy board using json and check if the correct response is recieved
+        reply = com.send_json(command)
+        if reply["Status"] != "Success":
+            raise Exception("Failed to start conversion", reply)
+        
+        reply = com.send_json({"CMD":1}) # command 1 askes the board to dump the buffer out on the serial line
+        if reply["Status"] != "Success":
+            raise Exception("Failed to download data", reply)
+    
+        # Initialise the output arrays and then loop through the result format to save the buffer output values into a single array
+        adc_0_output=[]
+        i = 0
+        while i < len(reply["ResultADC0"]):
+            adc_0_output.append(reply["ResultADC0"][i])
+            adc_0_output.append(reply["ResultADC0"][i+1])
+            adc_0_output.append(reply["ResultADC0"][i+2])
+            adc_0_output.append(reply["ResultADC0"][i+3])
+            i += 4
+    
+        adc_1_output=[]
+        i = 0
+        while i < len(reply["ResultADC1"]):
+            adc_1_output.append(reply["ResultADC1"][i])
+            adc_1_output.append(reply["ResultADC1"][i+1])
+            adc_1_output.append(reply["ResultADC1"][i+2])
+            adc_1_output.append(reply["ResultADC1"][i+3])
+            i += 4
+            
+        # Subtracting the average of the adc outputs from each value so that the range changes from 0,4096 to roughly -2048,2048
+        adc_0_output = np.subtract(adc_0_output,np.average(adc_0_output))
+        adc_1_output = np.subtract(adc_1_output,np.average(adc_1_output))
+    
+        return adc_0_output, adc_1_output
         
         
         
