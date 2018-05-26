@@ -94,7 +94,7 @@ def digital_pin_to_sc1a(ADC, pin):
 
 
 
-def read_voltages_two_pins_fastest(command):
+def read_voltages_two_pins_fastest(command, adc_resolution):
     import numpy as np
     from Controller import Controller
     with Controller() as com:
@@ -149,8 +149,18 @@ def read_voltages_two_pins_fastest(command):
         # Subtracting the average of the adc outputs from each value so that the range changes from 0,4096 to roughly -2048,2048
         adc_0_output = np.subtract(adc_0_output,np.average(adc_0_output))
         adc_1_output = np.subtract(adc_1_output,np.average(adc_1_output))
-    
-        return adc_0_output, adc_1_output
+        
+        # Scale the ADC range to the voltage ragne of 0 - 3.3 volts
+        voltages_0 = []
+        voltages_1 = []
+        for i in range(len(adc_0_output)):
+            int_value_adc0 = int(adc_0_output[i])
+            int_value_adc1 = int(adc_1_output[i])
+            
+            voltages_0.append((int_value_adc0*3.3)/(2**adc_resolution))
+            voltages_1.append((int_value_adc1*3.3)/(2**adc_resolution))
+            
+        return voltages_0, voltages_1
         
         
         

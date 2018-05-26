@@ -13,8 +13,11 @@ from Functions import target_wave
 from Functions import read_voltages_two_pins_fastest
 
 
-# Define the target wave, for the correlation funciton, as the saved recieved wave.
-target = target_wave()
+# Define Constatns
+
+target = target_wave() # Define the target wave, for the correlation funciton, as the saved recieved wave.
+adc_resolution = 12
+
 
 
 def average_waves(averages, command): ### Need to find a better way of doing averaging this is not good
@@ -25,14 +28,14 @@ def average_waves(averages, command): ### Need to find a better way of doing ave
     list_voltages_2 = []
     
     for iteration in range(averages):
-        voltages = read_voltages_two_pins_fastest(command.copy())
+        voltages = read_voltages_two_pins_fastest(command.copy(), adc_resolution)
         list_voltages_1.append(voltages[0])
         list_voltages_2.append(voltages[1])
     
-    voltages_1 = np.average(list_voltages_1,axis = 0)
-    voltages_2 = np.average(list_voltages_2,axis = 0)
+    voltages0 = np.average(list_voltages_1,axis = 0)
+    voltages1 = np.average(list_voltages_2,axis = 0)
 
-    return voltages_1, voltages_2
+    return voltages0, voltages1
 
 
 
@@ -44,14 +47,14 @@ li = [plt.plot([1,1], 'x-')[0] for i in range(8)]
 
 while True:
     #Trigger a conversion
-    command = {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":23, "PWMwidth":12}
+    command = {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":23, "PWMwidth":6}
     voltages_adc_0, voltages_adc_1 = average_waves(15, command)
     
     li[0].set_ydata(voltages_adc_0)
     li[0].set_xdata(range(len(voltages_adc_0)))
     
     target_wave = []
-    for i in range(int(0.2*len(voltages_adc_0))):
+    for i in range(int(0.08*len(voltages_adc_0))):
         target_wave.append(voltages_adc_0[i])
     sample_number_of_echo = 0
 
@@ -59,12 +62,12 @@ while True:
     li[1].set_xdata(range(len(voltages_adc_1)))
     
     sample_number_of_echo, correlation_signal = correlation(voltages_adc_1, target_wave)
-    correlation_signal = np.multiply(correlation_signal, 0.0001)
+    correlation_signal = np.multiply(correlation_signal, 0.5)
     li[2].set_ydata(correlation_signal)
     li[2].set_xdata(range(len(correlation_signal)))
     
     time_to_first_echo = (sample_number_of_echo)/(480000)
-    distance_between_transducers = (343 * time_to_first_echo * 100) -7.29  # in cm
+    distance_between_transducers = (343 * time_to_first_echo * 100) - 6.29  # in cm
     print("Sample Number = ", sample_number_of_echo)
     print("Distance = ", "%.2f" % distance_between_transducers, " cm")
     distance_str = str("%.2f" % distance_between_transducers)
@@ -77,7 +80,9 @@ while True:
     ax.legend()
     
 
-    ax.set_ylim([-2100,2100]) 
+    ax.set_ylim([-2,2]) 
+    ax.set_ylabel('Voltage (V)')
+    ax.set_xlabel('Sample Number')
     ax.relim()
     ax.autoscale_view(True,True,True)
     plt.gcf().canvas.draw()
