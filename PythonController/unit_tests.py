@@ -1,14 +1,14 @@
-
 ## Unit Tests
+
 
 def test_correlation(passed = False):
     """ Function to test the correlation function and make sure it outputs the correct answer for a given signal and target.
     """
     import numpy as np
     import math
-    import functions
+    import Functions
     # Try increasing the noise!
-    noise_stddev = 1
+    noise_stddev = 0.1
     dt = 0.1
     tmax = 100
     steps = int(tmax/dt)
@@ -34,9 +34,10 @@ def test_correlation(passed = False):
     # can find "similar" signals)
     target_wave=[2 * (v>0) - 1 for v in clean_signal]
 
-    test_result = functions.correlation(signal, target_wave, plot = True)[0] ## Change plot to true to plot functions
+    test_result = Functions.correlation(signal, target_wave, plot = False)[0] ## Change plot to true to plot functions
     
     if test_result != 150:
+        print(test_result)
         print("Error: correlation test function failed")
     
     else:
@@ -44,17 +45,32 @@ def test_correlation(passed = False):
     return passed
 
 
-
-
-
-
-# Run Tests
-if test_correlation():
-    print("All Tests Passed")
+def test_target_wave(passed = False):
+    """ Function to test the target_wave function and make sure it works.
+    """
+    import Functions
     
-else:
-    print("Some tests failed: See above errors")
+    test_result = Functions.target_wave()
     
+    if len(test_result) != 99:
+        print("Error: target_wave test function failed")
+    elif test_result[0] != -62.43359375:
+        print("Error: target_wave test function failed")
+    else:
+        passed = True
+    return passed
 
+
+def run_tests():
+    # Run Tests
+    if test_correlation() and test_target_wave():
+        print("All Tests Passed")
+        return(True)
+        
+    else:
+        print("Some tests failed: See above errors")
+        return(False)
+    
+    
 
 

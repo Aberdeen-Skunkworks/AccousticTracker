@@ -29,6 +29,7 @@ def correlation(signal, target_wave, plot = False):
     return maxindex, correlation_signal
 
 
+
 def target_wave(): ## Currently unused
     """ Funciton that returns the saved target wave for the correlation funciton to use. This is a 99 sample set of the recieved acoustic signal.
     """
