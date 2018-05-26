@@ -44,32 +44,38 @@ li = [plt.plot([1,1], 'x-')[0] for i in range(8)]
 
 while True:
     #Trigger a conversion
-    command = {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":23, "PWMwidth":10}
-    voltages_adc_0, voltages_adc_1 = read_voltages_two_pins_fastest(command)
+    command = {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":23, "PWMwidth":12}
+    voltages_adc_0, voltages_adc_1 = average_waves(15, command)
     
     li[0].set_ydata(voltages_adc_0)
     li[0].set_xdata(range(len(voltages_adc_0)))
     
     target_wave = []
-    for i in range(int(0.1*len(voltages_adc_0))):
+    for i in range(int(0.2*len(voltages_adc_0))):
         target_wave.append(voltages_adc_0[i])
     sample_number_of_echo = 0
 
     li[1].set_ydata(voltages_adc_1)
     li[1].set_xdata(range(len(voltages_adc_1)))
     
-    sample_number_of_echo, correlation_signal = correlation(voltages_adc_1, target)
-    correlation_signal = np.multiply(correlation_signal, 0.001)
+    sample_number_of_echo, correlation_signal = correlation(voltages_adc_1, target_wave)
+    correlation_signal = np.multiply(correlation_signal, 0.0001)
     li[2].set_ydata(correlation_signal)
     li[2].set_xdata(range(len(correlation_signal)))
     
     time_to_first_echo = (sample_number_of_echo)/(480000)
-    distance_between_transducers = (343 * time_to_first_echo * 100) -6.72  # in cm
+    distance_between_transducers = (343 * time_to_first_echo * 100) -7.29  # in cm
     print("Sample Number = ", sample_number_of_echo)
     print("Distance = ", "%.2f" % distance_between_transducers, " cm")
+    distance_str = str("%.2f" % distance_between_transducers)
+    distance_label = distance_str + " cm"
 
+    
     li[3].set_ydata([-5000,5000])
     li[3].set_xdata([sample_number_of_echo,sample_number_of_echo])
+    li[3].set_label(distance_label)
+    ax.legend()
+    
 
     ax.set_ylim([-2100,2100]) 
     ax.relim()

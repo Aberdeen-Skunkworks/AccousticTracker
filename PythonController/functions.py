@@ -106,7 +106,9 @@ def read_voltages_two_pins_fastest(command):
         - The command takes the digital pin numbers and converts them automatically to sc1a numbers and checks whether or not the corresponding ADC can use that pin
         - This mode is for both ADC's to read only 1 pin each so that the highest reading resolution possible is atchieved.
         - It is possible on a few pins to read with both ADC's therefore to test if they are giving the same outputs can be setupt to read the same signal.
-        - The PWM pin takes the digital pin number of the 
+        - The PWM pin takes the digital pin number of the pin you want to output the pulse signal from
+        - Pwm Width takes in a number of half waves of the pulse you want. 8 will give you 4 full square wave pulses.
+        - This function assumes voltage range of 0-3.3 volts and a ADC resolution of 12 bits. (Otherwise voltages will be scaled wrong)
         """
         
         # Check that all ADC channels are the same for each ADC in the command
