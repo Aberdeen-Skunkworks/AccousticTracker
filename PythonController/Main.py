@@ -31,7 +31,7 @@ else:
 target = target_wave() # Define the target wave, for the correlation funciton, as the saved recieved wave.
 adc_resolution = 12
 target_wave_adc0_or_adc1 = 0
-distance_correction = - 6.15
+distance_correction = - 6.15 
 
 
 
