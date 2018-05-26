@@ -214,13 +214,14 @@ elif choose == ("2"):
             li[3].set_xdata([sample_number_of_echo,sample_number_of_echo])
             li[3].set_label(distance_label)
             
-            
+
             # Commands and labels for plotting the data continioustly for axis 1
             ax1.legend()
             ax1.set_ylim([-2,2]) 
             ax1.set_ylabel('Voltage (V)')
             ax1.set_xlabel('Sample Number')
-            ax1.set_title('All signals updating for every sample')
+            title_list = ["Currently sampling between transducer 1 and 2", "Currently sampling between transducer 2 and 1", "Currently sampling between transducer 1 and 3", "Currently sampling between transducer 3 and 1", "Currently sampling between transducer 2 and 3", "Currently sampling between transducer 3 and 2"]
+            ax1.set_title(title_list[mesurment])
             ax1.relim()
             ax1.autoscale_view(True,True,True)
             plt.pause(0.01)
