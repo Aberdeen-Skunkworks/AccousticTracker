@@ -64,7 +64,7 @@ void pwm_isr(void) {
   //Increase the counter and check if that's the end of the pulse
   pwm_counter += 1;
   if (pwm_counter > pwm_pulse_width) {
-    pinMode(pwm_pin, OUTPUT);
+    pinMode(pwm_pin, INPUT_DISABLE);
     pwm_timer.end();
   }
 }
