@@ -12,6 +12,8 @@ from Functions import correlation
 from Functions import target_wave
 from Functions import read_voltages_two_pins_fastest
 from Functions import average_waves
+from Functions import find_background_voltages
+from Functions import scale_around_zero
 from unit_tests import run_tests
 
 
@@ -22,7 +24,7 @@ if run_tests():
     pass
 else:
      raise Exception('Error some or multiple tests failed, aborting')
-            
+
 
 
 # Define Constatns
@@ -54,7 +56,9 @@ if choose == ("1"):
     while True:
         #Trigger the average funvtion to take readings with the following command
         command = {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":23, "PWMwidth":6}
-        voltages_adc_0, voltages_adc_1 = average_waves(25, adc_resolution, command)
+        background_voltage_0, background_voltage_1 = find_background_voltages(command, adc_resolution)
+        voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = average_waves(25, adc_resolution, command)
+        voltages_adc_0, voltages_adc_1 = scale_around_zero(background_voltage_0, background_voltage_1, voltages_adc_0_not_scaled, voltages_adc_1_not_scaled, adc_resolution)
     
         # Allow the choice of what ADC the target signal comes from
         if target_wave_adc0_or_adc1 == 0:
@@ -111,14 +115,14 @@ if choose == ("1"):
         ax.autoscale_view(True,True,True)
         plt.gcf().canvas.draw()
         plt.pause(0.01)
-    
-    
+
+
 
 ## -------------------- Three transdcuer triangulation ------------------- ##
     
 elif choose == ("2"):
     print("You have chosen Three transdcuer triangulation mode")
-
+    print("In progress........")
 
 
 
@@ -127,4 +131,59 @@ elif choose == ("2"):
 
 else:
     print("Come on, pick a correct mode!")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

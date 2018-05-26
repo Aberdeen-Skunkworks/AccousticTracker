@@ -144,23 +144,47 @@ def read_voltages_two_pins_fastest(command, adc_resolution):
             adc_1_output.append(reply["ResultADC1"][i+3])
             i += 4
             
-        # Subtracting the average of the adc outputs from each value so that the range changes from 0,4096 to roughly -2048,2048
-        adc_0_output = np.subtract(adc_0_output,np.average(adc_0_output))
-        adc_1_output = np.subtract(adc_1_output,np.average(adc_1_output))
-        
-        # Scale the ADC range to the voltage ragne of 0 - 3.3 volts
-        voltages_0 = []
-        voltages_1 = []
-        for i in range(len(adc_0_output)):
-            int_value_adc0 = int(adc_0_output[i])
-            int_value_adc1 = int(adc_1_output[i])
             
-            voltages_0.append((int_value_adc0*3.3)/(2**adc_resolution))
-            voltages_1.append((int_value_adc1*3.3)/(2**adc_resolution))
-            
-        return voltages_0, voltages_1
+        return adc_0_output, adc_1_output
 
+
+
+def find_background_voltages(command, adc_resolution):
+    """
+    Funciton to run first so that the background pin voltage can be found and used to scale the output around zero vols
+    """
+    import numpy as np
+    command_no_pwm = command.copy()
+    command_no_pwm["PWM_pin"] = -1
+    voltages_0, voltages_1 = read_voltages_two_pins_fastest(command_no_pwm, adc_resolution)
+    
+    return np.average(voltages_0), np.average(voltages_1)
+    
+
+
+def scale_around_zero(ADC_0_background, ADC_1_background, adc_0_output, adc_1_output, adc_resolution):
+    """
+    Funciton to scale the ADC outputs around zero volts
+    """
+    import numpy as np
+    
+    # Subtracting the background voltages of the adc outputs from each value so that the range changes from 0,4096 to roughly -2048,2048
+    adc_0_output = np.subtract(adc_0_output, ADC_0_background)
+    adc_1_output = np.subtract(adc_1_output, ADC_1_background)
+    
+    # Scale the ADC range to the voltage ragne of 0 - 3.3 volts
+    voltages_0 = []
+    voltages_1 = []
+    for i in range(len(adc_0_output)):
+        int_value_adc0 = int(adc_0_output[i])
+        int_value_adc1 = int(adc_1_output[i])
         
+        voltages_0.append((int_value_adc0*3.3)/(2**adc_resolution))
+        voltages_1.append((int_value_adc1*3.3)/(2**adc_resolution))
+        
+    return voltages_0, voltages_1
+
+
 
 def average_waves(averages, adc_resolution, command): 
     """ Take in how many waves to average, the adc_resoultion and the board command. Output the average of those waves.
