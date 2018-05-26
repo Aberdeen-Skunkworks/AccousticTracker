@@ -29,7 +29,7 @@ def correlation(signal, target_wave, plot = False):
     return maxindex, correlation_signal
 
 
-def target_wave():
+def target_wave(): ## Currently unused
     """ Funciton that returns the saved target wave for the correlation funciton to use. This is a 99 sample set of the recieved acoustic signal.
     """
 
@@ -45,9 +45,7 @@ def target_wave():
 66.56640625, 41.56640625, 2.56640625, -33.43359375, -59.43359375, -72.43359375, -65.43359375, -39.43359375, -4.43359375]
     return target
 
-
-
-                     
+                
                                  
 def digital_pin_to_sc1a(ADC, pin):
     """
@@ -91,7 +89,6 @@ def digital_pin_to_sc1a(ADC, pin):
     else:
         raise Exception("Error: Please choose either ADC:0 or ADC:1")
         
-
 
 
 def read_voltages_two_pins_fastest(command, adc_resolution):
@@ -161,10 +158,27 @@ def read_voltages_two_pins_fastest(command, adc_resolution):
             voltages_1.append((int_value_adc1*3.3)/(2**adc_resolution))
             
         return voltages_0, voltages_1
+
         
-        
-        
-        
+
+def average_waves(averages, adc_resolution, command): 
+    """ Take in how many waves to average, the adc_resoultion and the board command. Output the average of those waves.
+    """
+    import numpy as np
+    list_voltages_1 = []
+    list_voltages_2 = []
+    
+    # Send read command and save to a list for each number of averages asked for
+    for iteration in range(averages):
+        voltages = read_voltages_two_pins_fastest(command.copy(), adc_resolution)
+        list_voltages_1.append(voltages[0])
+        list_voltages_2.append(voltages[1])
+    
+    # Use numpy to average the list of lists into the voltages to output
+    voltages0 = np.average(list_voltages_1,axis = 0)
+    voltages1 = np.average(list_voltages_2,axis = 0)
+
+    return voltages0, voltages1
         
         
         
