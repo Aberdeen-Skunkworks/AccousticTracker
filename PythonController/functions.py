@@ -72,9 +72,9 @@ def digital_pin_to_sc1a(ADC, pin):
             
 
     elif ADC == 1:
-        # Index is digital pin - value is sc1a number  
+        # Index is digital pin - value is sc1a number  (Added 8 and 9 manually)
         sc1a = [None , None , None , None , None , None , None , None , None , None , 
-        None , None , None , None , None , None , None , None , None , None , None , None , 
+        None , None , None , None , None , None , 8 , 9 , None , None , None , None , 
         None , None , None , None , None , None , None , None , None , 14 , 15 , None , 
         None , 4 , 5 , 6 , 7 , 17 , None , None , None , None , None , None , None , None , 
         None , 10 , 11 , None , None , None , None , None , None , None , None , None , None , 
