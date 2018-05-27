@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import math
+from mpl_toolkits.mplot3d import Axes3D
 from Controller import Controller
 from Functions import correlation
 from Functions import target_wave
@@ -16,7 +17,9 @@ from Functions import read_voltages_two_pins_fastest
 from Functions import average_waves
 from Functions import find_background_voltages
 from Functions import scale_around_zero
+from Functions import transducer_info
 from unit_tests import run_tests
+
 
 
 
@@ -42,6 +45,7 @@ print(" ")
 print("Control modes:")
 print("(1) = Distance between 2 transducers")
 print("(2) = Three transdcuer triangulation")
+print("(3) = Ping 4th listen on 1,2 and 3")
 print(" ")
 choose = input("Please choose a mode from above: ")
 
@@ -296,16 +300,114 @@ elif choose == ("2"):
     
 elif choose == ("3"):
     
-    transducers = 4
-    transducer_read_pins = []
-    transducer_ping_pins = []
+    # Set up plotting axis
+    fig = plt.figure()
+    ax1 = fig.add_subplot(2,1,1)
+    ax2 = fig.add_subplot(2,1,2)
+    
+    # Create the lines and points that can be updated every loop. This means the figure does not need cleared every time its updated
+    li = [ax1.plot([1,1], 'x-')[0] for i in range(4)]
+    li_2 = [ax2.plot([1,1], 'x-')[0] for i in range(3)]
+    points = [ax2.plot([1,1], 'o', markersize=12)[0] for i in range(3)]
     
     
+    # Command order for listening is transducer 1 then 2 then 3 (Dont care about recording transmitting transducer as we pretend we cant read it)
+    # Ping 4 and listen on 1, 2 and 3
+    command_list = [
+    {"CMD":2, "ADC0Channels":[17,17,17,17], "ADC1Channels":[16,16,16,16], "PWM_pin":19, "PWMwidth":6},
+    {"CMD":2, "ADC0Channels":[17,17,17,17], "ADC1Channels":[38,38,38,38], "PWM_pin":19, "PWMwidth":6},
+    {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[17,17,17,17], "PWM_pin":19, "PWMwidth":6}]
     
+    # List of what ADC the target_wave will be on: Therefore the recieved signal will be on the other ADC
+    target_wave_adc0_or_adc1_list = [0, 0, 1]
     
+    with Controller() as com:
+        while True: 
+        
+            #Keeping track of all 6 distances: 1-2, 2-1, 1-3, 3-1, 2-3, 3-2
+            all_distances = []
+            
+            # Looping through the 6 distances to calculate
+            for mesurment in range(3):
+                
+                # Set up changing variables
+                command = command_list[mesurment]
+                target_wave_adc0_or_adc1 = target_wave_adc0_or_adc1_list[mesurment]
+                
+                #Trigger the average funvtion to take readings with the command from the list (Pass com as the controller funciton so that it only connects once at the start)
+                background_voltage_0, background_voltage_1 = find_background_voltages(command, adc_resolution, com)
+                voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = average_waves(5, adc_resolution, command, com)
+                voltages_adc_0, voltages_adc_1 = scale_around_zero(background_voltage_0, background_voltage_1, voltages_adc_0_not_scaled, voltages_adc_1_not_scaled, adc_resolution)
+            
+                # Allow the choice of what ADC the target signal comes from
+                if target_wave_adc0_or_adc1 == 0:
+                    target_wave = []
+                    # Take some percentage of the target wave to use as the target wave
+                    for i in range(int(0.2*len(voltages_adc_0))):
+                        target_wave.append(voltages_adc_0[i])
+                    recieved_signal = voltages_adc_1
+                        
+                elif target_wave_adc0_or_adc1 == 1:
+                    target_wave = []
+                    # Take some percentage of the target wave to use as the target wave
+                    for i in range(int(0.2*len(voltages_adc_1))):
+                        target_wave.append(voltages_adc_1[i])
+                    recieved_signal = voltages_adc_0
+                else:
+                    raise Exception('Pick ADC 1 or 0')
+                
+                # Plot the voltage data to the graph as lines
+                li[0].set_ydata(voltages_adc_0)
+                li[0].set_xdata(range(len(voltages_adc_0)))
+                li[0].set_label("Signal from ADC 0")
+                
+                li[1].set_ydata(voltages_adc_1)
+                li[1].set_xdata(range(len(voltages_adc_1)))
+                li[1].set_label("Signal from ADC 1")
+                
+                # Send the recieved wave and the target wave to the correlation function (Swithch target_saved to target_wave if you dont want to use the saved wave)
+                sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_saved)
+                correlation_signal = np.multiply(correlation_signal, 0.5) # scale so it is nicer to plot
+                li[2].set_ydata(correlation_signal)
+                li[2].set_xdata(range(len(correlation_signal)))
+                li[2].set_label("Correlation Fuction")
+                
+                # Calculate the distance to the transducer, knowing that sample rate is 12 per 40kHz wave and assuming speed of sound in air is 343 m/s
+                time_to_first_echo = (sample_number_of_echo)/(480000)
+                distance_between_transducers = (343 * time_to_first_echo * 100) + distance_correction  # 100 to convert to cm and correction to allow callibration
+                #print("Sample Number = ", sample_number_of_echo)
+                #print("Distance = ", "%.2f" % distance_between_transducers, " cm")
+                distance_str = str("%.2f" % distance_between_transducers)
+                distance_label = "Estimated distance: " + distance_str + " cm"
+            
+                all_distances.append(distance_between_transducers)
+                
+                # Plot vertical line at the distance so it is visiable on the graph
+                li[3].set_ydata([-5000,5000])
+                li[3].set_xdata([sample_number_of_echo,sample_number_of_echo])
+                li[3].set_label(distance_label)
+                
     
+                # Commands and labels for plotting the data continioustly for axis 1
+                ax1.legend()
+                ax1.set_ylim([-2,2]) 
+                ax1.set_ylabel('Voltage (V)')
+                ax1.set_xlabel('Sample Number')
+                title_list = ["Currently sampling transducer 1 ", "Currently sampling transducer 2 ", "Currently sampling  transducer 3"]
+                ax1.set_title(title_list[mesurment])
+                ax1.relim()
+                ax1.autoscale_view(True,True,True)
+                plt.pause(0.01)
+            
+            print("")
+            print("Distance from 1 to 4 = ", "%.2f" % all_distances[0])
+            print("Distance from 2 to 4 = ", "%.2f" % all_distances[1])
+            print("Distance from 3 to 4 = ", "%.2f" % all_distances[2])
+
+
+
     
-    
+
 else:
     print("Come on, pick a correct mode!")
 
