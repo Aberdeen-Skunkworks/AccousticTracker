@@ -136,10 +136,10 @@ elif choose == ("2"):
     
     # List of commands that cycle through what transducer is pinging and which is recieving
     command_list = [
-    {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":17, "PWMwidth":6},
+    {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":39, "PWMwidth":6},
     {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":6},
     
-    {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[16,16,16,16], "PWM_pin":17, "PWMwidth":6},
+    {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[16,16,16,16], "PWM_pin":39, "PWMwidth":6},
     {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[16,16,16,16], "PWM_pin":20, "PWMwidth":6},
     
     {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":6},
@@ -292,8 +292,20 @@ elif choose == ("2"):
             ax2.set_ylabel('y axis cm')
             ax2.legend()
         
-# -------------------------------------------------------------------------- #
-
+## ---------------------- n transdcuer triangulation --------------------- ##
+    
+elif choose == ("3"):
+    
+    transducers = 4
+    transducer_read_pins = []
+    transducer_ping_pins = []
+    
+    
+    
+    
+    
+    
+    
 else:
     print("Come on, pick a correct mode!")
 

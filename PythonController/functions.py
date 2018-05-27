@@ -224,8 +224,17 @@ def average_waves(averages, adc_resolution, command, com):
 
     return voltages0, voltages1
         
-        
-        
+
+def transducer_info(transducer_number):
+    
+    read_pin = [16, 38, 23, 17]
+    pwm_pin  = [39, 22, 20, 19]
+    adc      = [-1,  1,  0, -1] # -1 indicates connected to both ADCs
+    
+    if transducer_number >= len(read_pin):
+        raise Exception('Not that many transducers choose a numver between 0 and ', len(read_pin)-1)
+    else:
+        return read_pin[transducer_number], pwm_pin[transducer_number], adc[transducer_number]
         
         
         
