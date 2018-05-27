@@ -236,7 +236,11 @@ elif choose == ("2"):
         print("D3 2-3 = Average = ", "%.2f" % distance_3)
 
         # Performing trig funcitons on the distances to calcuate their relitive positions: H = height of triangle from transducer 3 to the x axis. L = distance between y axis and transducer 3
-        angle = math.acos((distance_1**2 + distance_2**2 - distance_3**2)/(2*distance_2*distance_1))
+        # Dealing with math domain errors when the distances are not physically possible due to errors
+        if (distance_1**2 + distance_2**2 - distance_3**2)/(2*distance_2*distance_1) >= 1:
+            angle = 0
+        else:
+            angle = math.acos((distance_1**2 + distance_2**2 - distance_3**2)/(2*distance_2*distance_1))
         L = math.cos(angle)*distance_2
         H = math.sin(angle)*distance_2
         
@@ -274,15 +278,16 @@ elif choose == ("2"):
         points[2].set_label("Transducer 3")
         
         # Commands and labels for plotting the data continioustly for axis 2
+        ax2.set_aspect('equal', 'datalim')
         ax2.relim()       
         ax2.autoscale_view(True,True,True)
-        ax2.set_ylim([-0.5,10]) 
-        ax2.set_xlim([-0.5,10]) 
+        #ax2.set_ylim([-0.5,10]) 
+        #ax2.set_xlim([-0.5,10]) 
         plt.gcf().canvas.draw()
         plt.pause(0.01)
         ax2.set_title('Locations of transducers')
-        ax2.set_xlabel('x axis m')
-        ax2.set_ylabel('y axis m')
+        ax2.set_xlabel('x axis cm')
+        ax2.set_ylabel('y axis cm')
         ax2.legend()
         
 # -------------------------------------------------------------------------- #
