@@ -30,10 +30,10 @@ else:
 
 
 # Define Constatns
-target = target_wave() # Define the target wave, for the correlation funciton, as the saved recieved wave.
+target_saved = target_wave() # Define the target wave, for the correlation funciton, as the saved recieved wave.
 adc_resolution = 12
 target_wave_adc0_or_adc1 = 0
-distance_correction = - 6.89 
+distance_correction = - 6.51 
 
 
 
@@ -88,8 +88,8 @@ if choose == ("1"):
             li[1].set_xdata(range(len(voltages_adc_1)))
             li[1].set_label("Signal from ADC 1")
             
-            # Send the recieved wave and the target wave to the correlation function
-            sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_wave)
+            # Send the recieved wave and the target wave to the correlation function  (Swithch target_saved to target_wave if you dont want to use the saved wave)
+            sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_saved)
             correlation_signal = np.multiply(correlation_signal, 0.5) # scale so it is nicer to plot
             li[2].set_ydata(correlation_signal)
             li[2].set_xdata(range(len(correlation_signal)))
@@ -192,8 +192,8 @@ elif choose == ("2"):
                 li[1].set_xdata(range(len(voltages_adc_1)))
                 li[1].set_label("Signal from ADC 1")
                 
-                # Send the recieved wave and the target wave to the correlation function
-                sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_wave)
+                # Send the recieved wave and the target wave to the correlation function (Swithch target_saved to target_wave if you dont want to use the saved wave)
+                sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_saved)
                 correlation_signal = np.multiply(correlation_signal, 0.5) # scale so it is nicer to plot
                 li[2].set_ydata(correlation_signal)
                 li[2].set_xdata(range(len(correlation_signal)))
