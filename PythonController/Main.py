@@ -37,7 +37,7 @@ target_saved = target_wave() # Define the target wave, for the correlation funci
 adc_resolution = 12
 target_wave_adc0_or_adc1 = 1
 distance_correction = - 6.51 
-repetitions = 2
+repetitions = 5
 
 
 # Ask User to choose a mode to run
@@ -420,7 +420,7 @@ elif choose == ("4"):
     with Controller() as com:
         t1 = time.time()
         repetitions = 1
-        command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":6, "repetitions":repetitions}
+        command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":-1, "PWMwidth":6, "repetitions":repetitions}
         for i in range(10):
             voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
             v_0_five_indivividual.append(voltages_adc_0_not_scaled)
@@ -431,7 +431,7 @@ elif choose == ("4"):
 
         t2 = time.time()
         repetitions = 10
-        command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":6, "repetitions":repetitions}
+        command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":-1, "PWMwidth":6, "repetitions":repetitions}
         v_0_five_at_once, v_1_five_at_once = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
 
         t3 = time.time()
