@@ -178,8 +178,10 @@ def find_background_voltages(command, adc_resolution, com, repetitions):
     command_no_pwm["PWM_pin"] = -1
     voltages_0, voltages_1 = read_voltages_two_pins_fastest(command_no_pwm, adc_resolution, com, repetitions)
     
-    # Divide out the repetitions 
+    # Divide out the repetitions     
+    print(voltages_0)
     voltages_0 = np.divide(voltages_0, repetitions)
+    print(voltages_1)
     voltages_1 =  np.divide(voltages_1, repetitions)
     
     return np.average(voltages_0), np.average(voltages_1)

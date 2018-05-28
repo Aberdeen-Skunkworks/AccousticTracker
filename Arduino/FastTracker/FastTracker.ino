@@ -185,12 +185,12 @@ void loop() {
           if (pwm_pin > -1){
             pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
           }
-          interrupts();
           delay(5); // !! Important !! Delay to allow the DMA to finish before writing to the output buffer otherwise it will write an empty buffer or old data
           for (int i = 0; i < BUF_SIZE; i = i + 1) {
             output_adcbuffer_0[i] += adcbuffer_0[i];
             output_adcbuffer_1[i] += adcbuffer_1[i];
           }
+          interrupts();
         }
          
         jsonBuffer.clear(); //Save memory by clearing the jBuffer for reuse, we can't use json_in_root or anything from it after this though!
