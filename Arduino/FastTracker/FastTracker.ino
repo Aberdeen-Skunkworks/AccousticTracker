@@ -73,25 +73,18 @@ void pwm_isr(void) {
   }
 }
 
-volatile int DMA_complete;
-
 //This callback is called whenever a DMA channel has completed all BUF_SIZE reads from its ADC. It resets the DMA controller back to the start clears the interrupt.
 void dma0_isr(void) {
   dma0->clearInterrupt();
+  dma0->TCD->DADDR = &adcbuffer_0[0];
   //Uncomment below if you want the ADC to continuously sample the pin.
-  //dma0->TCD->DADDR = &adcbuffer_0[0];
   //dma0->enable();
-  cli();
-  ++DMA_complete;
-  sei();
 }
 
 //Exactly the same as dma0_isr
 void dma2_isr(void) {
   dma2->clearInterrupt();
-  cli();
-  ++DMA_complete;
-  sei();
+  dma2->TCD->DADDR = &adcbuffer_1[0];
 }
 
 void loop() {
@@ -101,7 +94,6 @@ void loop() {
   if (!json_in_root.success())
     //Parsing failed, try again later
     return;
-
 
   const JsonVariant& cmd = json_in_root["CMD"];
   if (!cmd.is<int>()) {
@@ -173,8 +165,6 @@ void loop() {
             pwm_counter = 0;
           }
 
-          setup_dma();
-          
           //Don't allow interrupts while we enable all the dma systems
           //Interrupts need to be off to enable the dma for minimum time between starts. The need to be back on to allow the dma to run as they work with interupts
           if (pwm_pin > -1) {
@@ -186,7 +176,7 @@ void loop() {
           dma2->enable();
           interrupts();
 
-          while (DMA_complete != 2) {}
+          while (!dma0->complete() || !dma2->complete()) {}
 
           for (int i = 0; i < BUF_SIZE; i = i + 1) {
             output_adcbuffer_0[i] += adcbuffer_0[i];
@@ -194,7 +184,7 @@ void loop() {
           }
 
         }
-        
+
         Serial.print("{\"Status\":\"Success\", \"ResultADC0\":[");
         for (int i = 0; i < BUF_SIZE; i = i + 4) {
           Serial.print(output_adcbuffer_0[i]);
@@ -223,18 +213,18 @@ void loop() {
         break;
       }
     case 3: {
-      //Measure how long a ADC sample run takes
-        setup_dma();
+        //Measure how long a ADC sample run takes
         elapsedMicros waiting;
         noInterrupts();
         dma0->enable();
         dma2->enable();
-        interrupts();        
-        while (DMA_complete != 2) {}
+        interrupts();
+        while (!dma0->complete() || !dma2->complete()) {}
         int duration = waiting;
         Serial.print("{\"Status\":\"Success\", \"SampleDurationuS\":");
         Serial.print(duration);
-        Serial.print("\n");
+        Serial.print("}\n");
+        break;
       }
     default: {
         Serial.print("{\"Status\":\"Fail\", \"Error\":\"Unrecognised command\"}\n");
@@ -246,10 +236,6 @@ void loop() {
 }
 
 void setup_dma() {
-
-  //This is used to track when the DMA transfers are complete (it is set to 2)
-  DMA_complete = 0;
-
   //This sets up the DMA controllers to run the ADCs and transfer out the data
   //dma0/dma2 are responsible for copying out the ADC results when ADC0/ADC1 finishes
   //dma1/dma3 then copy a new configuration into the ADC after dma0/dma2 completes its copy. This allows us to change the pin being read, but also starts the next ADC conversion.

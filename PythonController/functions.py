@@ -140,13 +140,15 @@ def read_voltages_two_pins_fastest(command, adc_resolution, com, repetitions):
     if reply["Status"] != "Success":
         raise Exception("Failed to start conversion", reply)
     
-    reply = com.send_json({"CMD":1}) # command 1 askes the board to dump the buffer out on the serial line
-    if reply["Status"] != "Success":
-        raise Exception("Failed to download data", reply)
-
+    #print(reply)
+    
     # Initialise the output arrays and then loop through the result format to save the buffer output values into a single array
     adc_0_output=[]
     i = 0
+    print(len(reply["ResultADC0"]))
+    print(len(reply["ResultADC1"]))
+    print(reply)
+    
     while i < len(reply["ResultADC0"]):
         adc_0_output.append(reply["ResultADC0"][i])
         adc_0_output.append(reply["ResultADC0"][i+1])
@@ -163,7 +165,7 @@ def read_voltages_two_pins_fastest(command, adc_resolution, com, repetitions):
         adc_1_output.append(reply["ResultADC1"][i+3])
         i += 4
         
-    
+    print("done")
         
     return np.divide(adc_0_output, repetitions), np.divide(adc_1_output, repetitions)
 
