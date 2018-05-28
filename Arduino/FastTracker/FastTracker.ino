@@ -230,7 +230,7 @@ void loop() {
     case 4: {
         //Measure how long a ADC sample run takes 
         elapsedMicros waiting;
-        for (int i = 0; i < 10000; i = i + 1) {
+        for (int i = 0; i < 10000; i = i + 1) { // Mesure how long it takes to do a for loop (three instructions)then 6 nop instructions = 50 nanoseconds which divides into 1 microsecond easily
           __asm__("nop\n\t"); 
         };
         int duration = waiting;

@@ -143,8 +143,7 @@ def read_voltages_two_pins_fastest(command, adc_resolution, com, repetitions):
         adc_1_output.append(reply["ResultADC1"][i+3])
         i += 4
         
-    print("done")
-        
+    # Divide out the repitions so that the average output of the teensys multiple samples is outputed by this function        
     return np.divide(adc_0_output, repetitions), np.divide(adc_1_output, repetitions)
 
 
@@ -187,7 +186,7 @@ def scale_around_zero(ADC_0_background, ADC_1_background, adc_0_output, adc_1_ou
 
 
 
-def average_waves(averages, adc_resolution, command, com): # Redundant
+def average_waves(averages, adc_resolution, command, com): # Redundant as averaging now done on teensy
     """ Take in how many waves to average, the adc_resoultion and the board command. Output the average of those waves.
     """
     import numpy as np
@@ -205,7 +204,7 @@ def average_waves(averages, adc_resolution, command, com): # Redundant
     voltages1 = np.average(list_voltages_2,axis = 0)
 
     return voltages0, voltages1
-        
+      
 
 def transducer_info(transducer_number):
     
