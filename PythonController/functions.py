@@ -113,7 +113,7 @@ def digital_pin_to_sc1a(ADC, pin):
         
 
 
-def read_voltages_two_pins_fastest(command, adc_resolution, com):
+def read_voltages_two_pins_fastest(command, adc_resolution, com, repetitions):
     import numpy as np
     """
     Takes in a command formatted as:
@@ -163,19 +163,24 @@ def read_voltages_two_pins_fastest(command, adc_resolution, com):
         adc_1_output.append(reply["ResultADC1"][i+3])
         i += 4
         
+    
         
-    return adc_0_output, adc_1_output
+    return np.divide(adc_0_output, repetitions), np.divide(adc_1_output, repetitions)
 
 
 
-def find_background_voltages(command, adc_resolution, com):
+def find_background_voltages(command, adc_resolution, com, repetitions):
     """
     Funciton to run first so that the background pin voltage can be found and used to scale the output around zero vols
     """
     import numpy as np
     command_no_pwm = command.copy()
     command_no_pwm["PWM_pin"] = -1
-    voltages_0, voltages_1 = read_voltages_two_pins_fastest(command_no_pwm, adc_resolution, com)
+    voltages_0, voltages_1 = read_voltages_two_pins_fastest(command_no_pwm, adc_resolution, com, repetitions)
+    
+    # Divide out the repetitions 
+    voltages_0 = np.divide(voltages_0, repetitions)
+    voltages_1 =  np.divide(voltages_1, repetitions)
     
     return np.average(voltages_0), np.average(voltages_1)
     
@@ -205,7 +210,7 @@ def scale_around_zero(ADC_0_background, ADC_1_background, adc_0_output, adc_1_ou
 
 
 
-def average_waves(averages, adc_resolution, command, com): 
+def average_waves(averages, adc_resolution, command, com): # Redundant
     """ Take in how many waves to average, the adc_resoultion and the board command. Output the average of those waves.
     """
     import numpy as np

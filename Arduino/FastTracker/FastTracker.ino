@@ -16,6 +16,11 @@ DMAMEM static volatile uint16_t __attribute__((aligned(BUF_SIZE + 0))) adcbuffer
 DMAMEM static volatile uint16_t ChannelsCfg_0 [] =  { 0x46, 0x46, 0x46, 0x46 };  //ADC0: CH0 ad6(A6), CH1 ad7(A7), CH2 ad15(A8), CH3 ad4(A9)
 DMAMEM static volatile uint16_t ChannelsCfg_1 [] =  { 0x45, 0x46, 0x47, 0x44 };  //ADC1: CH0 ad4(A17), CH1 ad5(A16), CH2ad6(A18), CH3 ad7(A19)
 
+// output buffers to store the adc outputs when their are repetitons and multiple values are required (Dont do more than 16 repetitions or the bits may overflow if their are 16 4096 outputs (unlikely))
+volatile uint16_t output_adcbuffer_0[BUF_SIZE];
+volatile uint16_t output_adcbuffer_1[BUF_SIZE];
+
+
 //Create the ADC and DMA controller objects
 ADC *adc = new ADC(); // adc object
 DMAChannel* dma0 = new DMAChannel(false);
@@ -35,8 +40,10 @@ void setup() {
 
   // clear DMA buffer (helps us see when a ADC trigger did not work). Not actually needed.
   for (int i = 0; i < BUF_SIZE; ++i) {
-    adcbuffer_0[i] = 50000;
-    adcbuffer_1[i] = 50000;
+    adcbuffer_0[i] = 0;
+    adcbuffer_1[i] = 0;
+    output_adcbuffer_0[i] = 0;
+    output_adcbuffer_1[i] = 0;
 
   }
   //Setup the ADC
@@ -54,6 +61,10 @@ volatile int pwm_pulse_width = 8;
 volatile int pwm_pin = 20;
 //The timer interrupt used to generate the square wave
 IntervalTimer pwm_timer;
+//The number of times a sample is repeated when a sample command is sent (The division will be performed externally)
+volatile int repetitions = 1;
+
+
 
 //This is the callback, called by pwm_timer.
 void pwm_isr(void) {
@@ -91,6 +102,7 @@ void loop() {
   if (!json_in_root.success())
     //Parsing failed, try again later
     return;
+  
 
   const JsonVariant& cmd = json_in_root["CMD"];
   if (!cmd.is<int>()) {
@@ -114,30 +126,30 @@ void loop() {
 
         Serial.print("{\"Status\":\"Success\", \"ResultADC0\":[");
         for (int i = 0; i < BUF_SIZE; i = i + 4) {
-          Serial.print(adcbuffer_0[i]);
+          Serial.print(output_adcbuffer_0[i]);
           Serial.print(",");
-          Serial.print(adcbuffer_0[i + 1]);
+          Serial.print(output_adcbuffer_0[i + 1]);
           Serial.print(",");
-          Serial.print(adcbuffer_0[i + 2]);
+          Serial.print(output_adcbuffer_0[i + 2]);
           Serial.print(",");
-          Serial.print(adcbuffer_0[i + 3]);
+          Serial.print(output_adcbuffer_0[i + 3]);
           if (i != BUF_SIZE - 4)
             Serial.print(",");
         }
         Serial.print("], \"ResultADC1\":[");
         for (int i = 0; i < BUF_SIZE; i = i + 4) {
-          Serial.print(adcbuffer_1[i]);
+          Serial.print(output_adcbuffer_1[i]);
           Serial.print(",");
-          Serial.print(adcbuffer_1[i + 1]);
+          Serial.print(output_adcbuffer_1[i + 1]);
           Serial.print(",");
-          Serial.print(adcbuffer_1[i + 2]);
+          Serial.print(output_adcbuffer_1[i + 2]);
           Serial.print(",");
-          Serial.print(adcbuffer_1[i + 3]);
+          Serial.print(output_adcbuffer_1[i + 3]);
           if (i != BUF_SIZE - 4)
             Serial.print(",");
         }
         Serial.print("]}\n");
-
+        
         digitalWrite(ledPin, HIGH);   // set the LED on
         delay(50);                  // wait for a second
         digitalWrite(ledPin, LOW);    // set the LED off
@@ -151,26 +163,39 @@ void loop() {
           ChannelsCfg_0[i] = 0x40 | json_in_root["ADC0Channels"][i].as<uint16_t>();
           ChannelsCfg_1[i] = 0x40 | json_in_root["ADC1Channels"][i].as<int>();
         }
-
+        // clear output array before looping again
+        for (int i = 0; i < BUF_SIZE; ++i) {
+          output_adcbuffer_0[i] = 0;
+          output_adcbuffer_1[i] = 0;
+         }
+        repetitions = json_in_root["repetitions"];
         pwm_pin = json_in_root["PWM_pin"];
         pwm_pulse_width = json_in_root["PWMwidth"];
         pwm_counter = 0;
-        if (pwm_pin > -1) {
-          pinMode(pwm_pin, OUTPUT);
-          digitalWrite(pwm_pin, 0);
+        
+        for (int i = 0; i < repetitions; i = i + 1) {
+          if (pwm_pin > -1) {
+            pinMode(pwm_pin, OUTPUT);
+            digitalWrite(pwm_pin, 0);
+          }
+          //Don't allow interrupts while we enable all the dma systems
+          noInterrupts();
+          dma0->enable();
+          dma2->enable();
+          if (pwm_pin > -1){
+            pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
+          }
+          interrupts();
+          delay(5); // !! Important !! Delay to allow the DMA to finish before writing to the output buffer otherwise it will write an empty buffer or old data
+          for (int i = 0; i < BUF_SIZE; i = i + 1) {
+            output_adcbuffer_0[i] += adcbuffer_0[i];
+            output_adcbuffer_1[i] += adcbuffer_1[i];
+          }
         }
-        //Don't allow interrupts while we enable all the dma systems
-        noInterrupts();
-        dma0->enable();
-        dma2->enable();
-        if (pwm_pin > -1)
-          pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
-        interrupts();
-
+         
         jsonBuffer.clear(); //Save memory by clearing the jBuffer for reuse, we can't use json_in_root or anything from it after this though!
         JsonObject& json_out_root = jsonBuffer.createObject();
         json_out_root["Status"] = "Success";
-
         json_out_root.printTo(Serial);
         break;
       }

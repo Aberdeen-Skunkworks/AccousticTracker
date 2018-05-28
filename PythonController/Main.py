@@ -37,7 +37,7 @@ target_saved = target_wave() # Define the target wave, for the correlation funci
 adc_resolution = 12
 target_wave_adc0_or_adc1 = 0
 distance_correction = - 6.51 
-
+repetitions = 2
 
 
 # Ask User to choose a mode to run
@@ -61,11 +61,11 @@ if choose == ("1"):
     with Controller() as com:
         while True:
             #Trigger the average funvtion to take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
-            command = {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":20, "PWMwidth":6}
-            background_voltage_0, background_voltage_1 = find_background_voltages(command, adc_resolution, com)
-            voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = average_waves(15, adc_resolution, command, com)
+            command = {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":20, "PWMwidth":6, "repetitions":repetitions}
+            background_voltage_0, background_voltage_1 = find_background_voltages(command, adc_resolution, com, repetitions)
+            voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = read_voltages_two_pins_fastest(command, adc_resolution, com, repetitions)
             voltages_adc_0, voltages_adc_1 = scale_around_zero(background_voltage_0, background_voltage_1, voltages_adc_0_not_scaled, voltages_adc_1_not_scaled, adc_resolution)
-        
+            
             # Allow the choice of what ADC the target signal comes from
             if target_wave_adc0_or_adc1 == 0:
                 target_wave = []
@@ -296,7 +296,7 @@ elif choose == ("2"):
             ax2.set_ylabel('y axis cm')
             ax2.legend()
         
-## ---------------------- n transdcuer triangulation --------------------- ##
+## ---------------------- Ping 4th listen on 1,2 and 3 --------------------- ##
     
 elif choose == ("3"):
     
@@ -406,7 +406,7 @@ elif choose == ("3"):
 
 
 
-    
+
 
 else:
     print("Come on, pick a correct mode!")
