@@ -122,7 +122,6 @@ void loop() {
       }
     case 1: {
         //CMD 1 Reads out the results of the last/ongoing conversion
-
         Serial.print("{\"Status\":\"Success\", \"ResultADC0\":[");
         for (int i = 0; i < BUF_SIZE; i = i + 4) {
           Serial.print(output_adcbuffer_0[i]);
@@ -148,15 +147,10 @@ void loop() {
             Serial.print(",");
         }
         Serial.print("]}\n");
-
-        digitalWrite(ledPin, HIGH);   // set the LED on
-        delay(50);                  // wait for a second
-        digitalWrite(ledPin, LOW);    // set the LED off
         break;
       }
     case 2: {
         //Start a capture/conversion
-
         //First, load the channels to sample from the command
         for (int i(0); i < 4; ++i) {
           ChannelsCfg_0[i] = 0x40 | json_in_root["ADC0Channels"][i].as<uint16_t>();
@@ -200,10 +194,32 @@ void loop() {
           }
 
         }
-        jsonBuffer.clear(); //Save memory by clearing the jBuffer for reuse, we can't use json_in_root or anything from it after this though!
-        JsonObject& json_out_root = jsonBuffer.createObject();
-        json_out_root["Status"] = "Success";
-        json_out_root.printTo(Serial);
+        
+        Serial.print("{\"Status\":\"Success\", \"ResultADC0\":[");
+        for (int i = 0; i < BUF_SIZE; i = i + 4) {
+          Serial.print(output_adcbuffer_0[i]);
+          Serial.print(",");
+          Serial.print(output_adcbuffer_0[i + 1]);
+          Serial.print(",");
+          Serial.print(output_adcbuffer_0[i + 2]);
+          Serial.print(",");
+          Serial.print(output_adcbuffer_0[i + 3]);
+          if (i != BUF_SIZE - 4)
+            Serial.print(",");
+        }
+        Serial.print("], \"ResultADC1\":[");
+        for (int i = 0; i < BUF_SIZE; i = i + 4) {
+          Serial.print(output_adcbuffer_1[i]);
+          Serial.print(",");
+          Serial.print(output_adcbuffer_1[i + 1]);
+          Serial.print(",");
+          Serial.print(output_adcbuffer_1[i + 2]);
+          Serial.print(",");
+          Serial.print(output_adcbuffer_1[i + 3]);
+          if (i != BUF_SIZE - 4)
+            Serial.print(",");
+        }
+        Serial.print("]}\n");
         break;
       }
     case 3: {
