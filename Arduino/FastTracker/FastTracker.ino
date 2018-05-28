@@ -164,21 +164,23 @@ void loop() {
         repetitions = json_in_root["repetitions"];
         pwm_pin = json_in_root["PWM_pin"];
         pwm_pulse_width = json_in_root["PWMwidth"];
-        pwm_counter = 0;
+        const unsigned int pwm_delay = json_in_root["PWMdelay"];
 
         for (int i = 0; i < repetitions; i = i + 1) {
           if (pwm_pin > -1) {
             pinMode(pwm_pin, OUTPUT);
             digitalWrite(pwm_pin, 0);
+            pwm_counter = 0;
           }
           //Don't allow interrupts while we enable all the dma systems
           //Interrupts need to be off to enable the dma for minimum time between starts. The need to be back on to allow the dma to run as they work with interupts
+          if (pwm_pin > -1) {
+            pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
+            delayMicroseconds(pwm_delay);
+          }
           noInterrupts();
           dma0->enable();
           dma2->enable();
-          if (pwm_pin > -1) {
-            pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
-          }
           interrupts();
           delay(5); // !! Important !! Delay to allow the DMA to finish before writing to the output buffer otherwise it will write an empty buffer or old data
           for (int i = 0; i < BUF_SIZE; i = i + 1) {

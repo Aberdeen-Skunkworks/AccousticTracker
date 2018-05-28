@@ -65,7 +65,6 @@ if choose == ("1"):
             #Trigger the average funvtion to take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
             voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
             voltages_adc_0, voltages_adc_1 = scale_around_zero(background_voltage_0, background_voltage_1, voltages_adc_0_not_scaled, voltages_adc_1_not_scaled, adc_resolution)
-            
             # Allow the choice of what ADC the target signal comes from
             if target_wave_adc0_or_adc1 == 0:
                 target_wave = []
@@ -419,9 +418,10 @@ elif choose == ("4"):
     v_1_five_at_once = []  
     
     with Controller() as com:
+        t1 = time.time()
         repetitions = 1
         command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":6, "repetitions":repetitions}
-        for i in range(5):
+        for i in range(10):
             voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
             v_0_five_indivividual.append(voltages_adc_0_not_scaled)
             v_1_five_indivividual.append(voltages_adc_1_not_scaled)
@@ -429,18 +429,19 @@ elif choose == ("4"):
         v_0_five_indivividual = np.average(v_0_five_indivividual, axis = 0)
         v_1_five_indivividual = np.average(v_1_five_indivividual, axis = 0)
 
-        
-        repetitions = 5
+        t2 = time.time()
+        repetitions = 10
         command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":6, "repetitions":repetitions}
         v_0_five_at_once, v_1_five_at_once = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
 
-        
+        t3 = time.time()
         ax1.plot(v_0_five_indivividual)
         ax1.plot(v_1_five_indivividual)
         ax2.plot(v_0_five_at_once) 
         ax2.plot(v_1_five_at_once)
 
-
+        print(t2-t1)
+        print(t3-t2)
 
 
 else:
