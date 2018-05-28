@@ -94,7 +94,7 @@ if choose == ("1"):
             
             # Send the recieved wave and the target wave to the correlation function  (Swithch target_saved to target_wave if you dont want to use the saved wave)
             sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_saved)
-            correlation_signal = np.multiply(correlation_signal, 0.02) # scale so it is nicer to plot
+            correlation_signal = np.multiply(correlation_signal, 1) # scale so it is nicer to plot
             li[2].set_ydata(correlation_signal)
             li[2].set_xdata(range(len(correlation_signal)))
             li[2].set_label("Correlation Fuction")
@@ -404,6 +404,41 @@ elif choose == ("3"):
             print("Distance from 2 to 4 = ", "%.2f" % all_distances[1])
             print("Distance from 3 to 4 = ", "%.2f" % all_distances[2])
 
+
+elif choose == ("4"):
+    
+ # Set up plotting axis
+    fig = plt.figure()
+    ax1 = fig.add_subplot(2,1,1)
+    ax2 = fig.add_subplot(2,1,2)
+    
+    v_0_five_indivividual = []
+    v_1_five_indivividual = []
+    
+    v_0_five_at_once = []
+    v_1_five_at_once = []  
+    
+    with Controller() as com:
+        repetitions = 1
+        command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":6, "repetitions":repetitions}
+        for i in range(5):
+            voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
+            v_0_five_indivividual.append(voltages_adc_0_not_scaled)
+            v_1_five_indivividual.append(voltages_adc_1_not_scaled)
+        
+        v_0_five_indivividual = np.average(v_0_five_indivividual, axis = 0)
+        v_1_five_indivividual = np.average(v_1_five_indivividual, axis = 0)
+
+        
+        repetitions = 5
+        command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":6, "repetitions":repetitions}
+        v_0_five_at_once, v_1_five_at_once = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
+
+        
+        ax1.plot(v_0_five_indivividual)
+        ax1.plot(v_1_five_indivividual)
+        ax2.plot(v_0_five_at_once) 
+        ax2.plot(v_1_five_at_once)
 
 
 

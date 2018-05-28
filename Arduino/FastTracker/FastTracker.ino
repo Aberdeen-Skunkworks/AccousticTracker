@@ -38,14 +38,7 @@ void setup() {
 
   Serial.begin(115200);
 
-  // clear DMA buffer (helps us see when a ADC trigger did not work). Not actually needed.
-  for (int i = 0; i < BUF_SIZE; ++i) {
-    adcbuffer_0[i] = 0;
-    adcbuffer_1[i] = 0;
-    output_adcbuffer_0[i] = 0;
-    output_adcbuffer_1[i] = 0;
 
-  }
   //Setup the ADC
   setup_adc();
   //Setup the DMA channels
@@ -102,14 +95,14 @@ void loop() {
   if (!json_in_root.success())
     //Parsing failed, try again later
     return;
-  
+
 
   const JsonVariant& cmd = json_in_root["CMD"];
   if (!cmd.is<int>()) {
     Serial.print("{\"Status\":\"Fail\", \"Error\":\"CMD is not a integer?\"}\n");
     return;
   }
-  
+
   switch (cmd.as<int>()) {
     case 0: {
         //CMD0 is a info request
@@ -149,7 +142,7 @@ void loop() {
             Serial.print(",");
         }
         Serial.print("]}\n");
-        
+
         digitalWrite(ledPin, HIGH);   // set the LED on
         delay(50);                  // wait for a second
         digitalWrite(ledPin, LOW);    // set the LED off
@@ -161,38 +154,40 @@ void loop() {
         //First, load the channels to sample from the command
         for (int i(0); i < 4; ++i) {
           ChannelsCfg_0[i] = 0x40 | json_in_root["ADC0Channels"][i].as<uint16_t>();
-          ChannelsCfg_1[i] = 0x40 | json_in_root["ADC1Channels"][i].as<int>();
+          ChannelsCfg_1[i] = 0x40 | json_in_root["ADC1Channels"][i].as<uint16_t>();
         }
         // clear output array before looping again
         for (int i = 0; i < BUF_SIZE; ++i) {
           output_adcbuffer_0[i] = 0;
           output_adcbuffer_1[i] = 0;
-         }
+        }
         repetitions = json_in_root["repetitions"];
         pwm_pin = json_in_root["PWM_pin"];
         pwm_pulse_width = json_in_root["PWMwidth"];
         pwm_counter = 0;
-        
+
         for (int i = 0; i < repetitions; i = i + 1) {
           if (pwm_pin > -1) {
             pinMode(pwm_pin, OUTPUT);
             digitalWrite(pwm_pin, 0);
           }
           //Don't allow interrupts while we enable all the dma systems
+          //Interrupts need to be off to enable the dma for minimum time between starts. The need to be back on to allow the dma to run as they work with interupts
           noInterrupts();
           dma0->enable();
           dma2->enable();
-          if (pwm_pin > -1){
+          if (pwm_pin > -1) {
             pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
           }
+          interrupts();
           delay(5); // !! Important !! Delay to allow the DMA to finish before writing to the output buffer otherwise it will write an empty buffer or old data
           for (int i = 0; i < BUF_SIZE; i = i + 1) {
             output_adcbuffer_0[i] += adcbuffer_0[i];
             output_adcbuffer_1[i] += adcbuffer_1[i];
           }
-          interrupts();
+
         }
-         
+
         jsonBuffer.clear(); //Save memory by clearing the jBuffer for reuse, we can't use json_in_root or anything from it after this though!
         JsonObject& json_out_root = jsonBuffer.createObject();
         json_out_root["Status"] = "Success";
@@ -211,9 +206,9 @@ void loop() {
 void setup_dma() {
   //This sets up the DMA controllers to run the ADCs and transfer out the data
   //dma0/dma2 are responsible for copying out the ADC results when ADC0/ADC1 finishes
-  //dma1/dma3 then copy a new configuration into the ADC after dma0/dma2 completes its copy. This allows us to change the pin being read, but also starts the next ADC conversion. 
-  
-  
+  //dma1/dma3 then copy a new configuration into the ADC after dma0/dma2 completes its copy. This allows us to change the pin being read, but also starts the next ADC conversion.
+
+
   dma0->begin(true);                 // allocate the DMA channel (there are many, this just grabs the first free one)
   dma0->TCD->SADDR = &ADC0_RA;       // where to read from (the ADC result register)
   dma0->TCD->SOFF = 0;               // source increment each transfer (0=Don't move from the ADC result)
