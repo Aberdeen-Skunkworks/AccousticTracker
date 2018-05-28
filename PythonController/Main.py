@@ -37,7 +37,7 @@ target_saved = target_wave() # Define the target wave, for the correlation funci
 adc_resolution = 12
 target_wave_adc0_or_adc1 = 1
 distance_correction = - 6.51 
-repetitions = 5
+repetitions = 15 # Do not use more than 16 if the teensy is storing the values as 16 bit intagers
 
 
 # Ask User to choose a mode to run
@@ -59,7 +59,7 @@ if choose == ("1"):
     ax = plt.gca()
     li = [plt.plot([1,1], 'x-')[0] for i in range(4)]
     with Controller() as com:
-        command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":6, "repetitions":repetitions}
+        command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":10, "repetitions":repetitions}
         background_voltage_0, background_voltage_1 = find_background_voltages(command, adc_resolution, com, repetitions)
         while True:
             #Trigger the average funvtion to take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
@@ -93,7 +93,7 @@ if choose == ("1"):
             
             # Send the recieved wave and the target wave to the correlation function  (Swithch target_saved to target_wave if you dont want to use the saved wave)
             sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_saved)
-            correlation_signal = np.multiply(correlation_signal, 1) # scale so it is nicer to plot
+            correlation_signal = np.multiply(correlation_signal, 0.1) # scale so it is nicer to plot
             li[2].set_ydata(correlation_signal)
             li[2].set_xdata(range(len(correlation_signal)))
             li[2].set_label("Correlation Fuction")
@@ -421,7 +421,7 @@ elif choose == ("4"):
         t1 = time.time()
         repetitions = 1
         command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":-1, "PWMwidth":6, "repetitions":repetitions}
-        for i in range(10):
+        for i in range(50):
             voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
             v_0_five_indivividual.append(voltages_adc_0_not_scaled)
             v_1_five_indivividual.append(voltages_adc_1_not_scaled)
@@ -430,7 +430,7 @@ elif choose == ("4"):
         v_1_five_indivividual = np.average(v_1_five_indivividual, axis = 0)
 
         t2 = time.time()
-        repetitions = 10
+        repetitions = 50
         command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":-1, "PWMwidth":6, "repetitions":repetitions}
         v_0_five_at_once, v_1_five_at_once = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
 

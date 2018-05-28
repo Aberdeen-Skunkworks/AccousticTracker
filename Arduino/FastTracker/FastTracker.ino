@@ -17,8 +17,8 @@ DMAMEM static volatile uint16_t ChannelsCfg_0 [] =  { 0x46, 0x46, 0x46, 0x46 }; 
 DMAMEM static volatile uint16_t ChannelsCfg_1 [] =  { 0x45, 0x46, 0x47, 0x44 };  //ADC1: CH0 ad4(A17), CH1 ad5(A16), CH2ad6(A18), CH3 ad7(A19)
 
 // output buffers to store the adc outputs when their are repetitons and multiple values are required (Dont do more than 16 repetitions or the bits may overflow if their are 16 4096 outputs (unlikely))
-volatile uint16_t output_adcbuffer_0[BUF_SIZE];
-volatile uint16_t output_adcbuffer_1[BUF_SIZE];
+volatile uint32_t output_adcbuffer_0[BUF_SIZE];
+volatile uint32_t output_adcbuffer_1[BUF_SIZE];
 
 
 //Create the ADC and DMA controller objects
@@ -220,6 +220,19 @@ void loop() {
         dma2->enable();
         interrupts();
         while (!dma0->complete() || !dma2->complete()) {}
+        int duration = waiting;
+        Serial.print("{\"Status\":\"Success\", \"SampleDurationuS\":");
+        Serial.print(duration);
+        Serial.print("}\n");
+        break;
+      }
+
+    case 4: {
+        //Measure how long a ADC sample run takes 
+        elapsedMicros waiting;
+        for (int i = 0; i < 10000; i = i + 1) {
+          __asm__("nop\n\t"); 
+        };
         int duration = waiting;
         Serial.print("{\"Status\":\"Success\", \"SampleDurationuS\":");
         Serial.print(duration);
