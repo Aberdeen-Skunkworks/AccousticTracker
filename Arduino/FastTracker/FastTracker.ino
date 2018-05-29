@@ -169,7 +169,11 @@ void loop() {
           //Interrupts need to be off to enable the dma for minimum time between starts. The need to be back on to allow the dma to run as they work with interupts
           if (pwm_pin > -1) {
             pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
-            delayMicroseconds(pwm_delay);
+            // To be able to delay in the nanoseconds range a for loop that performs a no operation or nop is used. The for loop takes three cpu instructions and the nop takes one.
+            // So in total a PWM delay of 1 will delay the start of the ADC by 4 cpu cycles. At 180MHz thats 22.222222222 repeating nano seconds. 
+            for (int i = 0; i < pwm_delay; i = i + 1) { 
+              __asm__("nop\n\t"); 
+            };
           }
           noInterrupts();
           dma0->enable();

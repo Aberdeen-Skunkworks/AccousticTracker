@@ -217,15 +217,38 @@ def transducer_info(transducer_number):
     else:
         return read_pin[transducer_number], pwm_pin[transducer_number], adc[transducer_number]
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+def pwm_delay_read(pwm_delay):
+    
+    # To be able to delay in the nanoseconds range, a for loop that performs a no operation or nop is used. The for loop takes three cpu instructions and the nop takes one.
+    # So in total a PWM delay of 1 will delay the start of the ADC by 4 cpu cycles. At 180MHz thats 22.222222222 repeating nano seconds. 
+    # Therefore since one ADC sample takes 2000 nanoseconds for an integer division of this sample the pwm_delay must be a factor of (2000/22.22222) = 90
+    # These factors are 1,2,3,5,6,9,10,15,18,30,45 and 90
+    # So to delay 1/2 of a sample a pwm_delay of 45 is set
+    # ---------------------------------------------------
+    #   pwm_delay           Fraction of a sample
+    #   90                  1
+    #   45                  1/2
+    #   30                  1/3
+    #   18                  1/5        
+    #   15                  1/6            
+    #   10                  1/9            
+    #   9                   1/10        
+    #   6                   1/15            
+    #   5                   1/18            
+    #   3                   1/30        
+    #   2                   1/45        
+    #   1                   1/90        
+    
+    
+
+    pass
+
+def pwm_delay_to_microseconds(pwm_delay):
+    miliseconds = pwm_delay * 0.0222222222222222222222222
+    return miliseconds
+    
+    
         
         
         

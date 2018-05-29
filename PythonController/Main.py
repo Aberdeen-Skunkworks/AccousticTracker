@@ -17,6 +17,7 @@ from Functions import read_voltages_two_pins_fastest
 from Functions import find_background_voltages
 from Functions import scale_around_zero
 from Functions import transducer_info
+from Functions import pwm_delay_to_microseconds
 from unit_tests import run_tests
 
 
@@ -45,7 +46,7 @@ print("Control modes:")
 print("(1) = Distance between 2 transducers")
 print("(2) = Three transdcuer triangulation")
 print("(3) = Ping 4th listen on 1,2 and 3")
-print("(-1) = Debugging and test mode")
+print("(negitive numbers) = Debugging and test modes")
 print(" ")
 choose = input("Please choose a mode from above: ")
 
@@ -59,7 +60,7 @@ if choose == ("1"):
     ax = plt.gca()
     li = [plt.plot([1,1], 'x-')[0] for i in range(4)]
     with Controller() as com:
-        command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":10, "repetitions":repetitions}
+        command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":10, "repetitions":repetitions, "PWMdelay":0}
         background_voltage_0, background_voltage_1 = find_background_voltages(command, adc_resolution, com, repetitions)
         while True:
             #Trigger the average funvtion to take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
@@ -446,6 +447,51 @@ elif choose == ("-1"):
         print(t3-t2)
 
 
+## ----------------------  Debugging and test mode 2 --------------------- ##
+
+elif choose == ("-2"):
+    
+ # Set up plotting axis
+    fig = plt.figure()
+    ax1 = fig.add_subplot(2,1,1)
+    ax2 = fig.add_subplot(2,1,2)
+    
+    v_0_five_indivividual = []
+    v_1_five_indivividual = []
+    
+    v_0_five_at_once = []
+    v_1_five_at_once = []  
+    
+    repetitions = 25
+    PWMdelay = [0,15,30,45,60,75]
+    output_adc0 = []
+    output_adc1 = []
+    times_x_axis = []
+
+    
+    with Controller() as com:
+        t1 = time.time()
+        for resoultion in range(len(PWMdelay)):
+            command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":10, "repetitions":repetitions, "PWMdelay":PWMdelay[0]}
+            background_voltage_0, background_voltage_1 = find_background_voltages(command, adc_resolution, com, repetitions)
+            for i in range(2):
+                #Trigger the average funvtion to take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
+                voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
+                voltages_adc_0, voltages_adc_1 = scale_around_zero(background_voltage_0, background_voltage_1, voltages_adc_0_not_scaled, voltages_adc_1_not_scaled, adc_resolution)
+                # Allow the choice of what ADC the target signal comes from
+                
+                times_microseconds = np.linspace(pwm_delay_to_microseconds(PWMdelay[resoultion]), (len(voltages_adc_0)*2+pwm_delay_to_microseconds(PWMdelay[resoultion])), num=len(voltages_adc_0), endpoint=True)
+            
+            
+            for i in range(len(voltages_adc_0)):
+                output_adc0.append(voltages_adc_0[i])                
+                output_adc1.append(voltages_adc_1[i])
+                times_x_axis.append(times_microseconds[i])
+                       
+        times_x_axis_sorted, output_adc0_sorted, output_adc1_sorted = zip(*sorted(zip(times_x_axis, output_adc0, output_adc1)))
+        
+        ax1.plot(times_x_axis_sorted, output_adc0_sorted, 'x-')
+        ax2.plot(times_x_axis_sorted, output_adc1_sorted, 'x-')  
 else:
     print("Come on, pick a correct mode!")
 
