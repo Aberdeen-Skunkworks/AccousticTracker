@@ -463,7 +463,7 @@ elif choose == ("-2"):
     v_1_five_at_once = []  
     
     repetitions = 25
-    PWMdelay = [0,15,30,45,60,75]
+    PWMdelay = [0,30,60]
     output_adc0 = []
     output_adc1 = []
     times_x_axis = []
@@ -472,7 +472,7 @@ elif choose == ("-2"):
     with Controller() as com:
         t1 = time.time()
         for resoultion in range(len(PWMdelay)):
-            command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":10, "repetitions":repetitions, "PWMdelay":PWMdelay[0]}
+            command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":10, "repetitions":repetitions, "PWMdelay":PWMdelay[resoultion]}
             background_voltage_0, background_voltage_1 = find_background_voltages(command, adc_resolution, com, repetitions)
             for i in range(2):
                 #Trigger the average funvtion to take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
