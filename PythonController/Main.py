@@ -18,6 +18,7 @@ from Functions import find_background_voltages
 from Functions import scale_around_zero
 from Functions import transducer_info
 from Functions import pwm_delay_to_microseconds
+from Functions import read_with_resolution
 from unit_tests import run_tests
 
 
@@ -38,6 +39,7 @@ adc_resolution = 12
 target_wave_adc0_or_adc1 = 1
 distance_correction = - 6.51 
 repetitions = 20 # Do not use more than 16 if the teensy is storing the values as 16 bit intagers
+PWMdelays = [0,10,20,30,40,50,60,70,80]
 
 
 # Ask User to choose a mode to run
@@ -61,46 +63,48 @@ if choose == ("1"):
     li = [plt.plot([1,1], 'x-')[0] for i in range(4)]
     with Controller() as com:
         command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":10, "repetitions":repetitions, "PWMdelay":0}
-        background_voltage_0, background_voltage_1 = find_background_voltages(command, adc_resolution, com, repetitions)
+
         while True:
             #Trigger the average funvtion to take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
-            voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
-            voltages_adc_0, voltages_adc_1 = scale_around_zero(background_voltage_0, background_voltage_1, voltages_adc_0_not_scaled, voltages_adc_1_not_scaled, adc_resolution)
+            output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
             # Allow the choice of what ADC the target signal comes from
             if target_wave_adc0_or_adc1 == 0:
                 target_wave = []
                 # Take some percentage of the target wave to use as the target wave
-                for i in range(int(0.2*len(voltages_adc_0))):
-                    target_wave.append(voltages_adc_0[i])
-                recieved_signal = voltages_adc_1
+                for i in range(int(0.2*len(output_adc0_sorted))):
+                    target_wave.append(output_adc0_sorted[i])
+                recieved_signal = output_adc1_sorted
                     
             elif target_wave_adc0_or_adc1 == 1:
                 target_wave = []
                 # Take some percentage of the target wave to use as the target wave
-                for i in range(int(0.3*len(voltages_adc_1))):
-                    target_wave.append(voltages_adc_1[i])
-                recieved_signal = voltages_adc_0
+                for i in range(int(0.3*len(output_adc1_sorted))):
+                    target_wave.append(output_adc1_sorted[i])
+                recieved_signal = output_adc0_sorted
             else:
                 raise Exception('Pick ADC 1 or 0')
                     
             # Plot the voltage data to the graph as lines
-            li[0].set_ydata(voltages_adc_0)
-            li[0].set_xdata(range(len(voltages_adc_0)))
+            li[0].set_ydata(output_adc0_sorted)
+            li[0].set_xdata(times_x_axis_sorted)
             li[0].set_label("Signal from ADC 0")
             
-            li[1].set_ydata(voltages_adc_1)
-            li[1].set_xdata(range(len(voltages_adc_1)))
+            li[1].set_ydata(output_adc1_sorted)
+            li[1].set_xdata(times_x_axis_sorted)
             li[1].set_label("Signal from ADC 1")
             
             # Send the recieved wave and the target wave to the correlation function  (Swithch target_saved to target_wave if you dont want to use the saved wave)
             sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_saved)
-            correlation_signal = np.multiply(correlation_signal, 0.1) # scale so it is nicer to plot
+            correlation_signal = np.multiply(correlation_signal, 1) # scale so it is nicer to plot
+            correlation_signal_times = []
+            for i in range(len(correlation_signal)):
+                correlation_signal_times.append(times_x_axis_sorted[i])
             li[2].set_ydata(correlation_signal)
-            li[2].set_xdata(range(len(correlation_signal)))
+            li[2].set_xdata(correlation_signal_times)
             li[2].set_label("Correlation Fuction")
             
             # Calculate the distance to the transducer, knowing that sample rate is 12 per 40kHz wave and assuming speed of sound in air is 343 m/s
-            time_to_first_echo = (sample_number_of_echo)/(480000)
+            time_to_first_echo = times_x_axis_sorted[sample_number_of_echo]/1000000
             distance_between_transducers = (343 * time_to_first_echo * 100) + distance_correction  # 100 to convert to cm and correction to allow callibration
             print("Sample Number = ", sample_number_of_echo)
             print("Distance = ", "%.2f" % distance_between_transducers, " cm")
@@ -109,14 +113,14 @@ if choose == ("1"):
         
             # Plot vertical line at the distance so it is visiable on the graph
             li[3].set_ydata([-5000,5000])
-            li[3].set_xdata([sample_number_of_echo,sample_number_of_echo])
+            li[3].set_xdata([times_x_axis_sorted[sample_number_of_echo], times_x_axis_sorted[sample_number_of_echo]])
             li[3].set_label(distance_label)
             
             # Commands and labels for plotting the data continioustly
             ax.legend()
             ax.set_ylim([-2,2]) 
             ax.set_ylabel('Voltage (V)')
-            ax.set_xlabel('Sample Number')
+            ax.set_xlabel('Time (micro seconds)')
             ax.relim()
             ax.autoscale_view(True,True,True)
             plt.gcf().canvas.draw()
@@ -455,43 +459,24 @@ elif choose == ("-2"):
     fig = plt.figure()
     ax1 = fig.add_subplot(2,1,1)
     ax2 = fig.add_subplot(2,1,2)
-    
-    v_0_five_indivividual = []
-    v_1_five_indivividual = []
-    
-    v_0_five_at_once = []
-    v_1_five_at_once = []  
-    
-    repetitions = 25
-    PWMdelay = [0,30,60]
-    output_adc0 = []
-    output_adc1 = []
-    times_x_axis = []
+        
+    repetitions = 20
+    PWMdelays = [0,10,20,30,40,50,60,70,80]
 
     
+    command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":10, "repetitions":repetitions, "PWMdelay":0}
+            
+
     with Controller() as com:
         t1 = time.time()
-        for resoultion in range(len(PWMdelay)):
-            command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":10, "repetitions":repetitions, "PWMdelay":PWMdelay[resoultion]}
-            background_voltage_0, background_voltage_1 = find_background_voltages(command, adc_resolution, com, repetitions)
-            for i in range(2):
-                #Trigger the average funvtion to take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
-                voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
-                voltages_adc_0, voltages_adc_1 = scale_around_zero(background_voltage_0, background_voltage_1, voltages_adc_0_not_scaled, voltages_adc_1_not_scaled, adc_resolution)
-                # Allow the choice of what ADC the target signal comes from
-                
-                times_microseconds = np.linspace(pwm_delay_to_microseconds(PWMdelay[resoultion]), (len(voltages_adc_0)*2+pwm_delay_to_microseconds(PWMdelay[resoultion])), num=len(voltages_adc_0), endpoint=True)
-            
-            
-            for i in range(len(voltages_adc_0)):
-                output_adc0.append(voltages_adc_0[i])                
-                output_adc1.append(voltages_adc_1[i])
-                times_x_axis.append(times_microseconds[i])
-                       
-        times_x_axis_sorted, output_adc0_sorted, output_adc1_sorted = zip(*sorted(zip(times_x_axis, output_adc0, output_adc1)))
+        output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
+        t2 = time.time()
+        print("Time to run = ", t2-t1)
         
         ax1.plot(times_x_axis_sorted, output_adc0_sorted, 'x-')
         ax2.plot(times_x_axis_sorted, output_adc1_sorted, 'x-')  
+        
+
 else:
     print("Come on, pick a correct mode!")
 

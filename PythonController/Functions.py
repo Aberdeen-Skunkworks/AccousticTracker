@@ -25,7 +25,7 @@ def correlation(signal, target_wave, plot = False):
 
     #Find the highest correlation index
     maxindex = np.argmax(correlation_signal)
-    
+     
     return maxindex, correlation_signal
 
 
@@ -218,7 +218,13 @@ def transducer_info(transducer_number):
         return read_pin[transducer_number], pwm_pin[transducer_number], adc[transducer_number]
         
 
-def pwm_delay_read(pwm_delay):
+
+
+def read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays):
+    import numpy as np
+    # Function takes in a command with PWM delay set at 0
+    # Also takes in the adc resolution the com that the board is connected to and the number of repetitions and also the PWM delays to loop through in an array like [0,30,60]
+    
     
     # To be able to delay in the nanoseconds range, a for loop that performs a no operation or nop is used. The for loop takes three cpu instructions and the nop takes one.
     # So in total a PWM delay of 1 will delay the start of the ADC by 4 cpu cycles. At 180MHz thats 22.222222222 repeating nano seconds. 
@@ -238,11 +244,38 @@ def pwm_delay_read(pwm_delay):
     #   5                   1/18            
     #   3                   1/30        
     #   2                   1/45        
-    #   1                   1/90        
+    #   1                   1/90
+    # Thereore resolution increases are only able to be replicated out of 90 so asking for 4 times the resolution is 22.5/90 which is not possible so only fractions of 90 are possible
     
+    # Setup output arrays
+    output_adc0 = []
+    output_adc1 = []
+    times_x_axis = []
     
+    # Take background readings
+    background_voltage_0, background_voltage_1 = find_background_voltages(command, adc_resolution, com, repetitions)
+    for resoultion in range(len(PWMdelays)):
+        # Set the delay for every loop to get higher resoultions
+        command["PWMdelay"] = PWMdelays[resoultion]
+        
+        # Read the voltages and then scale them around zero using the background voltages
+        voltages_adc_0_not_scaled, voltages_adc_1_not_scaled = read_voltages_two_pins_fastest(command.copy(), adc_resolution, com, repetitions)
+        voltages_adc_0, voltages_adc_1 = scale_around_zero(background_voltage_0, background_voltage_1, voltages_adc_0_not_scaled, voltages_adc_1_not_scaled, adc_resolution)
+        
+        # Calculate the times in microseconds that the samples are taken at for each of the resolutions
+        times_microseconds = np.linspace(pwm_delay_to_microseconds(PWMdelays[resoultion]), (len(voltages_adc_0)*2+pwm_delay_to_microseconds(PWMdelays[resoultion])), num=len(voltages_adc_0), endpoint=True)
+        
+        # Append the outputs for each resolution to the final output variables
+        output_adc0 = np.concatenate([output_adc0, voltages_adc_0])
+        output_adc1 = np.concatenate([output_adc1, voltages_adc_1])
+        times_x_axis = np.concatenate([times_x_axis,times_microseconds])
+        
+    # Sort the mesured voltages so that they are in time order and can be easily plotted
+    times_x_axis_sorted, output_adc0_sorted, output_adc1_sorted = zip(*sorted(zip(times_x_axis, output_adc0, output_adc1)))
+        
+    return output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted
+        
 
-    pass
 
 def pwm_delay_to_microseconds(pwm_delay):
     miliseconds = pwm_delay * 0.0222222222222222222222222
