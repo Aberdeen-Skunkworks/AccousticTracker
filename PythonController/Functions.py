@@ -1,5 +1,32 @@
 ## Functions used in the main acoustic tracker program
 
+def square_wave_gen(number_half_waves, resolution):
+    """
+    Takes in number of half waves and resolution in multiples of 12 samples per wave 1 = 12 samples per wave 2 = 24 so on 
+    Output square wave oscillating at 40,000 Hz with the x axis in microseconds and centered around zero    
+    """
+    from scipy import signal
+    import matplotlib.pyplot as plt
+    import numpy as np
+    
+
+    # One wave is 25 microseconds
+    t = np.linspace(0, 12.5*number_half_waves, 12*resolution*(number_half_waves/2), endpoint=False)
+    wave = -signal.square(2 * np.pi * 0.04 * t)*1.65
+
+    
+    return t, wave
+"""
+import matplotlib.pyplot as plt
+number_half_waves = 10
+resolution = 10
+    
+t, wave = square_wave_gen(number_half_waves, resolution)
+plt.plot(t, wave, 'x-')
+plt.ylim(-2, 2)    
+ """      
+        
+        
 
 def correlation(signal, target_wave, plot = False):
     """ Correlation function that takes in both a signal and a target wave signal and performes a correlation funciton on them. 
@@ -282,10 +309,8 @@ def pwm_delay_to_microseconds(pwm_delay):
     return miliseconds
     
     
-        
-        
-        
-        
+
+
         
         
         
