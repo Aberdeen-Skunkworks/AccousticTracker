@@ -321,16 +321,78 @@ def find_temperature():
             return reply["Temperature"]
             
         
+        
 def find_speed_of_sound():
     temp = find_temperature()
+    if temp < 10 or temp > 30:
+        raise Exception("Temperature reading is either quite high or low are you sure this is correct? if so adjust this checking function", temp, "Degrees C")
+    else:
+        # Imperical equation for the velocity in m/s of sound in air with temp in degrees C
+        velocity = 331.4 + 0.6*temp
+        return velocity, temp
+
+
+
+def distance_on_sphere(location, point):
+    """
+    Takes in a location in space [x, y, z] and a point in space [x, y, z] and returns the radius of the circle that is centered on the location and has the point on its surface
+    """
+    import math
+    distance = math.sqrt( (location[0]-point[0])**2 + (location[1]-point[1])**2 + (location[2]-point[2])**2 )
+    return distance
+
+
+
+def mse(x, locations, distances_mesured): # x = point in 3D space [x, y, z]
+    """
+    See optimise_location for detailed description of input variables
+    This is a Mean Square Error function that outputs a value dependant on the error of the distances mesured to the calcualted distances to the given point x 
+    (zero error would mean point x is the valid location that would give the mesured distances)
+    """
+    import math
+    mse = 0.0
+    distances = []
+    for i in range(len(locations)):
+        distances.append(distance_on_sphere(locations[i], x))
+        
+    for errors in range(len(locations)):
+        mse += math.pow(distances_mesured[errors] - distances[errors], 2.0)
+    return mse / len(locations)
+
+
+
+def optimise_location(guess, locations, distances_mesured):
+    import scipy; import time
+    """
+    Provide an initial location guess as: guess = [0,0,0]
+    Provide a list of known locations or beacons as they are commenly refered l1, l2 so on: locations = [[x, y, z], [x, y, z].....
+    Provide a list of mesured distances from these beacons to the desired location in space: distances_mesured = [d1, d2, d3  ....these are the distances from desired point to location l1, l2 so on in order
+    Uses an optimisation algorithm to find the location in space that minimises the Mean Square Error of the beacon distances to the outputed location
+    This location will be the closest point in space to the distances given and is robust to not mathamatically possibe distances between points
+    The error is also returned which tells you how much error there is in the given location (If the distances given have a valid mathamatical solution the error will be zero - perfect senario)
+    """
+
+
+    #t1 = time.time()
+    result = scipy.optimize.minimize(
+    	mse,                                   # The error function
+    	guess,                                 # The initial guess
+    	args=(locations, distances_mesured),   # Additional parameters for mse
+    	method='L-BFGS-B',                     # The optimisation algorithm
+    	options={
+    		'ftol':1e-5,         # Tolerance
+    		'maxiter': 1e+7      # Maximum iterations
+    	})
+    #t2 = time.time()
+        
+    location = result.x
+    error = result.fun
+    #print("")
+    #print("Time = ", t2-t1)
+    #print("Estimated location: ", location)
+    #print("Mean Square Error of location: ", error)
     
-    # Imperical equation for the velocity in m/s of sound in air with temp in degrees C
-
-    velocity = 331.4 + 0.6*temp
-    
-    return velocity
-
-
+    return location, error
 
 
 

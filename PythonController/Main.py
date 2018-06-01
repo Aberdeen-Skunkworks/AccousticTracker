@@ -21,6 +21,7 @@ from Functions import read_with_resolution
 from Functions import square_wave_gen
 from Functions import find_temperature
 from Functions import find_speed_of_sound
+from Functions import optimise_location
 from unit_tests import run_tests
 
 
@@ -43,8 +44,9 @@ repetitions = 5                # Do not use more than 16 if the teensy is storin
 PWMdelays = [0,18,36,54,72]     # PWM delays see read_with_resolution function from Functions for explanation (fractons of 90 to get even splits) set to [0] for fastest read and lowest resolution
                                 # --- Twice the resolutoin would be [0,45] and so on for higher resolutions
 PWMwidth = 6                    # Number of half waves to pulse the transducer with
-speed_of_sound = find_speed_of_sound() # Reading the temperature with the use of a Dallas DS18B20 digital temperature sensor: accurate to +-0.5 degrees
-
+speed_of_sound, temp = find_speed_of_sound() # Reading the temperature with the use of a Dallas DS18B20 digital temperature sensor: accurate to +-0.5 degrees
+print("Speed of sound used is: ","%.2f" % speed_of_sound, "m/s")
+print("Calculated for a temp of: ",temp, "Degrees C")
 
 # Ask User to choose a mode to run
 print(" ")
@@ -419,6 +421,18 @@ elif choose == ("3"):
             print("Distance from 1 to 4 = ", "%.2f" % all_distances[0], " mm")
             print("Distance from 2 to 4 = ", "%.2f" % all_distances[1], " mm")
             print("Distance from 3 to 4 = ", "%.2f" % all_distances[2], " mm")
+            
+            
+            guess = [0,0,0]
+            locations = [[0,0,0],[34.400924447749503,0,0],[11.404841030431948,44.972875037609505,0]]
+            distances_mesured = [all_distances[0], all_distances[1], all_distances[2]]
+            
+            location, error = optimise_location(guess, locations, distances_mesured)
+            
+            print("location = ", "%.2f" % location[0], "%.2f" % location[1], "%.2f" % location[2])
+            print("Error = ", "%.2f" % error)
+            
+            
 
 
          
