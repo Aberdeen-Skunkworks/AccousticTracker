@@ -43,7 +43,7 @@ repetitions = 5                # Do not use more than 16 if the teensy is storin
 PWMdelays = [0,18,36,54,72]     # PWM delays see read_with_resolution function from Functions for explanation (fractons of 90 to get even splits) set to [0] for fastest read and lowest resolution
                                 # --- Twice the resolutoin would be [0,45] and so on for higher resolutions
 PWMwidth = 6                    # Number of half waves to pulse the transducer with
-speed_of_sound = find_speed_of_sound()
+speed_of_sound = find_speed_of_sound() # Reading the temperature with the use of a Dallas DS18B20 digital temperature sensor: accurate to +-0.5 degrees
 
 
 # Ask User to choose a mode to run
