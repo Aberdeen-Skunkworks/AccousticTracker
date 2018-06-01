@@ -19,6 +19,7 @@ from Functions import transducer_info
 from Functions import pwm_delay_to_microseconds
 from Functions import read_with_resolution
 from Functions import square_wave_gen
+from Functions import find_temperature
 from Functions import find_speed_of_sound
 from unit_tests import run_tests
 
