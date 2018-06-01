@@ -1,10 +1,19 @@
 #include "DMAChannel.h"
 #include "ADC.h"
 #include <ArduinoJson.h>
+#include <OneWire.h> 
+#include <DallasTemperature.h>
 
 #define ADC_conv_speed ADC_CONVERSION_SPEED::VERY_HIGH_SPEED
 #define ADC_samp_speed ADC_SAMPLING_SPEED::VERY_HIGH_SPEED
 
+// Temperature reading digital pin number
+#define ONE_WIRE_BUS 10 
+// Setup one wire communications
+OneWire oneWire(ONE_WIRE_BUS); 
+// Pass our oneWire reference to Dallas Temperature. 
+DallasTemperature sensors(&oneWire);
+  
 //The size of the DMA/ADC buffers. Sizes above 512 don't seem to work, which the datasheet agrees with if the DMA channels are in ELINK mode, which they must be.
 #define BUF_SIZE 512
 //DMAMEM is just a hint to allocate this in the lower memory addresses. As the stack is in the upper addresses, this should result in the DMA using a different memory controller to the CPU, so neither have to wait for each other
@@ -37,7 +46,9 @@ void setup() {
   delay(500);
 
   Serial.begin(115200);
-
+  
+  // Start up the library 
+  sensors.begin(); 
 
   //Setup the ADC
   setup_adc();
@@ -56,7 +67,6 @@ volatile int pwm_pin = 20;
 IntervalTimer pwm_timer;
 //The number of times a sample is repeated when a sample command is sent (The division will be performed externally)
 volatile int repetitions = 1;
-
 
 
 //This is the callback, called by pwm_timer.
@@ -170,9 +180,9 @@ void loop() {
           if (pwm_pin > -1) {
             pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
             // To be able to delay in the nanoseconds range a for loop that performs a no operation or nop is used. The for loop takes three cpu instructions and the nop takes one.
-            // So in total a PWM delay of 1 will delay the start of the ADC by 4 cpu cycles. At 180MHz thats 22.222222222 repeating nano seconds. 
-            for (int i = 0; i < pwm_delay; i = i + 1) { 
-              __asm__("nop\n\t"); 
+            // So in total a PWM delay of 1 will delay the start of the ADC by 4 cpu cycles. At 180MHz thats 22.222222222 repeating nano seconds.
+            for (int i = 0; i < pwm_delay; i = i + 1) {
+              __asm__("nop\n\t");
             };
           }
           noInterrupts();
@@ -232,10 +242,10 @@ void loop() {
       }
 
     case 4: {
-        //Measure how long a ADC sample run takes 
+        //Measure how long a ADC sample run takes
         elapsedMicros waiting;
         for (int i = 0; i < 10000; i = i + 1) { // Mesure how long it takes to do a for loop (three instructions)then 6 nop instructions = 50 nanoseconds which divides into 1 microsecond easily
-          __asm__("nop\n\t"); 
+          __asm__("nop\n\t");
         };
         int duration = waiting;
         Serial.print("{\"Status\":\"Success\", \"SampleDurationuS\":");
@@ -243,6 +253,17 @@ void loop() {
         Serial.print("}\n");
         break;
       }
+
+    case 5: {
+        //Measure Temperature of the board
+        sensors.requestTemperatures(); // Send the command to get temperature readings 
+        float Temperature = sensors.getTempCByIndex(0);
+        Serial.print("{\"Status\":\"Success\", \"Temperature\":");
+        Serial.print(Temperature);
+        Serial.print("}\n");
+        break;
+      }
+
     default: {
         Serial.print("{\"Status\":\"Fail\", \"Error\":\"Unrecognised command\"}\n");
         break;

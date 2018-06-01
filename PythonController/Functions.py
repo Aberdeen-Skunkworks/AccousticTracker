@@ -25,8 +25,8 @@ t, wave = square_wave_gen(number_half_waves, resolution)
 plt.plot(t, wave, 'x-')
 plt.ylim(-2, 2)    
  """      
-        
-        
+
+
 
 def correlation(signal, target_wave, plot = False):
     """ Correlation function that takes in both a signal and a target wave signal and performes a correlation funciton on them. 
