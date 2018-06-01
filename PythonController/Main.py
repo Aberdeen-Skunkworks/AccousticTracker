@@ -19,6 +19,7 @@ from Functions import transducer_info
 from Functions import pwm_delay_to_microseconds
 from Functions import read_with_resolution
 from Functions import square_wave_gen
+from Functions import find_speed_of_sound
 from unit_tests import run_tests
 
 
@@ -41,7 +42,7 @@ repetitions = 5                # Do not use more than 16 if the teensy is storin
 PWMdelays = [0,18,36,54,72]     # PWM delays see read_with_resolution function from Functions for explanation (fractons of 90 to get even splits) set to [0] for fastest read and lowest resolution
                                 # --- Twice the resolutoin would be [0,45] and so on for higher resolutions
 PWMwidth = 6                    # Number of half waves to pulse the transducer with
-
+speed_of_sound = find_speed_of_sound()
 
 
 # Ask User to choose a mode to run
@@ -110,7 +111,7 @@ if choose == ("1"):
             
             # Calculate the distance to the transducer, knowing that sample rate is 12 per 40kHz wave and assuming speed of sound in air is 343 m/s
             time_to_first_echo = times_x_axis_sorted[sample_number_of_echo]/1000000
-            distance_between_transducers = (343 * time_to_first_echo * 1000) + distance_correction  # 100 to convert to cm and correction to allow callibration
+            distance_between_transducers = (speed_of_sound * time_to_first_echo * 1000) + distance_correction  # 100 to convert to cm and correction to allow callibration
             print("Sample Number = ", sample_number_of_echo)
             print("Distance = ", "%.2f" % distance_between_transducers, " mm")
             distance_str = str("%.2f" % distance_between_transducers)
@@ -218,7 +219,7 @@ elif choose == ("2"):
                 
                 # Calculate the distance to the transducer, knowing that sample rate is 12 per 40kHz wave and assuming speed of sound in air is 343 m/s
                 time_to_first_echo = times_x_axis_sorted[sample_number_of_echo]/1000000 # 1,000,000 to convert from microseconds to seconds
-                distance_between_transducers = (343 * time_to_first_echo * 1000) + distance_correction  # 100 to convert to cm and correction to allow callibration
+                distance_between_transducers = (speed_of_sound * time_to_first_echo * 1000) + distance_correction  # 100 to convert to cm and correction to allow callibration
                 #print("Sample Number = ", sample_number_of_echo)
                 #print("Distance = ", "%.2f" % distance_between_transducers, " mm")
                 distance_str = str("%.2f" % distance_between_transducers)
@@ -388,7 +389,7 @@ elif choose == ("3"):
                 
                 # Calculate the distance to the transducer, knowing that sample rate is 12 per 40kHz wave and assuming speed of sound in air is 343 m/s
                 time_to_first_echo = times_x_axis_sorted[sample_number_of_echo]/1000000 # 1,000,000 to convert from microseconds to seconds
-                distance_between_transducers = (343 * time_to_first_echo * 1000) + distance_correction  # 100 to convert to cm and correction to allow callibration
+                distance_between_transducers = (speed_of_sound * time_to_first_echo * 1000) + distance_correction  # 100 to convert to cm and correction to allow callibration
                 #print("Sample Number = ", sample_number_of_echo)
                 #print("Distance = ", "%.2f" % distance_between_transducers, " mm")
                 distance_str = str("%.2f" % distance_between_transducers)

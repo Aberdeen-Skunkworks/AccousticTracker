@@ -255,9 +255,15 @@ void loop() {
       }
 
     case 5: {
-        //Measure Temperature of the board
-        sensors.requestTemperatures(); // Send the command to get temperature readings 
+        //Measure Temperature of the board using a DS18B20 digital temperature sensor
+
+        //Request temperature from sensor
+        sensors.requestTemperatures(); // Send the command to get temperature readings
+
+        // Get temperature by index as there is only 1 sensor it is index 0
         float Temperature = sensors.getTempCByIndex(0);
+
+        // Print out the success command
         Serial.print("{\"Status\":\"Success\", \"Temperature\":");
         Serial.print(Temperature);
         Serial.print("}\n");

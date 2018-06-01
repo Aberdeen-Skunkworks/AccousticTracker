@@ -309,10 +309,39 @@ def pwm_delay_to_microseconds(pwm_delay):
     return miliseconds
     
     
+def find_temperature():
+    from Controller import Controller
+    with Controller() as com:
+        command =  {"CMD":5}
+        reply = com.send_json(command)
+        if reply["Status"] != "Success":
+            raise Exception("Failed to start conversion", reply)
+            
+        else:
+            return reply["Temperature"]
+            
+        
+def find_speed_of_sound():
+    temp = find_temperature()
+    
+    # Imperical equation for the velocity in m/s of sound in air with temp in degrees C
+
+    velocity = 331.4 + 0.6*temp
+    
+    return velocity
 
 
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
