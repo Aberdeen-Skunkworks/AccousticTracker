@@ -324,12 +324,17 @@ elif choose == ("3"):
     ax2 = fig.add_subplot(2,1,2, projection='3d')
     # Create the lines and points that can be updated every loop. This means the figure does not need cleared every time its updated
     li = [ax1.plot([1,1], 'x-')[0] for i in range(4)]
-
+    
+    lines_3d = [] 
     points = []
+    
     points.append( ax2.plot([0.1],[0.1],[0.1], 'ro', markersize=12)) # Need to  be set as floats or they will defalt to ints and not work
     points.append( ax2.plot([0.1],[0.1],[0.1], 'bo', markersize=12))
     points.append( ax2.plot([0.1],[0.1],[0.1], 'go', markersize=12))
     points.append( ax2.plot([0.1],[0.1],[0.1], 'co', markersize=12))
+    
+    lines_3d.append( ax2.plot([0.1,0],[0.1,0],[0.1,0]))
+    
     ax2.set_xlabel('X axis mm')
     ax2.set_ylabel('Y axis mm')
     ax2.set_zlabel('Z axis mm')
@@ -437,7 +442,7 @@ elif choose == ("3"):
             
             
             guess = [34.400924447749503/2,34.400924447749503,34.400924447749503/2]
-            locations = [[0,0,0],[34.400924447749503,0,0],[11.404841030431948,44.972875037609505,0]]
+            locations = [[0,0,0],[49.298756724853213,0,0],[23.923029907856428,51.603737775815745,0]]
             distances_mesured = [all_distances[0], all_distances[1], all_distances[2]]
             
             location, error = optimise_location(guess, locations, distances_mesured)
@@ -446,17 +451,31 @@ elif choose == ("3"):
             print("Error = ", "%.2f" % error)
             
             # Floating point numbers are important for the 3d live plotting to work
-            points[0][0]._verts3d[0][0] = 0.0
-            points[0][0]._verts3d[1][0] = 0.0
-            points[0][0]._verts3d[2][0] = 0.0
+            points[0][0]._verts3d[0][0] = locations[0][0]
+            points[0][0]._verts3d[1][0] = locations[0][1]
+            points[0][0]._verts3d[2][0] = locations[0][2]
             
-            points[1][0]._verts3d[0][0] = 37.97847170254401
-            points[1][0]._verts3d[1][0] = 0.0
-            points[1][0]._verts3d[2][0] = 0.0
+            """ Plotting lines in 3d only for 1 line needs more work to make it neater
+            lines_3d[0][0]._verts3d[0].setflags(write=1)
+            lines_3d[0][0]._verts3d[1].setflags(write=1)
+            lines_3d[0][0]._verts3d[2].setflags(write=1)
             
-            points[2][0]._verts3d[0][0] = 11.421316300584575
-            points[2][0]._verts3d[1][0] = 45.225899426034324
-            points[2][0]._verts3d[2][0] = 0.0
+            lines_3d[0][0]._verts3d[0][0] = locations[0][0]
+            lines_3d[0][0]._verts3d[1][0] = locations[0][1]
+            lines_3d[0][0]._verts3d[2][0] = locations[0][2]
+            
+            lines_3d[0][0]._verts3d[0][1] = location[0]
+            lines_3d[0][0]._verts3d[1][1] = location[1]
+            lines_3d[0][0]._verts3d[2][1] = location[2]
+            """
+
+            points[1][0]._verts3d[0][0] = locations[1][0]
+            points[1][0]._verts3d[1][0] = locations[1][1]
+            points[1][0]._verts3d[2][0] = locations[1][2]
+            
+            points[2][0]._verts3d[0][0] = locations[2][0]
+            points[2][0]._verts3d[1][0] = locations[2][1]
+            points[2][0]._verts3d[2][0] = locations[2][2]
             
             points[3][0]._verts3d[0][0] = location[0]
             points[3][0]._verts3d[1][0] = location[1]
