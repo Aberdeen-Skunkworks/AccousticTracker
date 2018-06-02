@@ -22,6 +22,7 @@ from Functions import square_wave_gen
 from Functions import find_temperature
 from Functions import find_speed_of_sound
 from Functions import optimise_location
+from Functions import autoscale_axis_3d
 from unit_tests import run_tests
 
 
@@ -319,11 +320,19 @@ elif choose == ("3"):
     
     # Set up plotting axis
     fig = plt.figure()
-    ax1 = fig.add_subplot(1,1,1)
-    
+    ax1 = fig.add_subplot(2,1,1)
+    ax2 = fig.add_subplot(2,1,2, projection='3d')
     # Create the lines and points that can be updated every loop. This means the figure does not need cleared every time its updated
     li = [ax1.plot([1,1], 'x-')[0] for i in range(4)]
 
+    points = []
+    points.append( ax2.plot([0.1],[0.1],[0.1], 'ro', markersize=12)) # Need to  be set as floats or they will defalt to ints and not work
+    points.append( ax2.plot([0.1],[0.1],[0.1], 'bo', markersize=12))
+    points.append( ax2.plot([0.1],[0.1],[0.1], 'go', markersize=12))
+    points.append( ax2.plot([0.1],[0.1],[0.1], 'co', markersize=12))
+    ax2.set_xlabel('X axis mm')
+    ax2.set_ylabel('Y axis mm')
+    ax2.set_zlabel('Z axis mm')
     
     # Command order for listening is transducer 1 then 2 then 3 (Dont care about recording transmitting transducer as we pretend we cant read it)
     # Ping 4 and listen on 1, 2 and 3
@@ -405,6 +414,7 @@ elif choose == ("3"):
                 li[3].set_xdata([times_x_axis_sorted[sample_number_of_echo], times_x_axis_sorted[sample_number_of_echo]])
                 li[3].set_label(distance_label)
                 
+                
     
                 # Commands and labels for plotting the data continioustly for axis 1
                 ax1.legend()
@@ -417,13 +427,16 @@ elif choose == ("3"):
                 ax1.autoscale_view(True,True,True)
                 plt.pause(0.01)
 
+
+
+
             print("")
             print("Distance from 1 to 4 = ", "%.2f" % all_distances[0], " mm")
             print("Distance from 2 to 4 = ", "%.2f" % all_distances[1], " mm")
             print("Distance from 3 to 4 = ", "%.2f" % all_distances[2], " mm")
             
             
-            guess = [0,0,0]
+            guess = [34.400924447749503/2,34.400924447749503,34.400924447749503/2]
             locations = [[0,0,0],[34.400924447749503,0,0],[11.404841030431948,44.972875037609505,0]]
             distances_mesured = [all_distances[0], all_distances[1], all_distances[2]]
             
@@ -432,8 +445,27 @@ elif choose == ("3"):
             print("location = ", "%.2f" % location[0], "%.2f" % location[1], "%.2f" % location[2])
             print("Error = ", "%.2f" % error)
             
+            # Floating point numbers are important for the 3d live plotting to work
+            points[0][0]._verts3d[0][0] = 0.0
+            points[0][0]._verts3d[1][0] = 0.0
+            points[0][0]._verts3d[2][0] = 0.0
             
-
+            points[1][0]._verts3d[0][0] = 37.97847170254401
+            points[1][0]._verts3d[1][0] = 0.0
+            points[1][0]._verts3d[2][0] = 0.0
+            
+            points[2][0]._verts3d[0][0] = 11.421316300584575
+            points[2][0]._verts3d[1][0] = 45.225899426034324
+            points[2][0]._verts3d[2][0] = 0.0
+            
+            points[3][0]._verts3d[0][0] = location[0]
+            points[3][0]._verts3d[1][0] = location[1]
+            points[3][0]._verts3d[2][0] = location[2]
+            
+            #autoscale_axis_3d(points, ax2)
+            ax2.set_xlim([-10, 50])
+            ax2.set_ylim([-10, 60])
+            ax2.set_zlim([0, 60])
 
          
 ## ----------------------  Debugging and test mode --------------------- ##

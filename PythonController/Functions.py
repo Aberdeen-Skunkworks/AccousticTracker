@@ -396,8 +396,37 @@ def optimise_location(guess, locations, distances_mesured):
 
 
 
-
-
+def autoscale_axis_3d(points, ax):
+    """
+    Pass the list of points and the axis to scale and will autpmatically scale the axis so all points are visiable
+    """
+    
+    xmin = 0
+    ymin = 0
+    zmin = 0
+    xmax = 0
+    ymax = 0
+    zmax = 0
+    
+    for point in range(len(points)):
+        if points[point][0]._verts3d[0][0] < xmin:
+            xmin = points[point][0]._verts3d[0][0] - ( points[point][0]._verts3d[0][0] /2 )
+        if points[point][0]._verts3d[0][0] > xmax:
+            xmax = points[point][0]._verts3d[0][0] + ( points[point][0]._verts3d[0][0] /2 )
+            
+        if points[point][0]._verts3d[1][0] < ymin:
+            ymin = points[point][0]._verts3d[1][0] - ( points[point][0]._verts3d[1][0] /2 )
+        if points[point][0]._verts3d[1][0] > ymax:
+            ymax = points[point][0]._verts3d[1][0] + ( points[point][0]._verts3d[1][0] /2 )    
+    
+        if points[point][0]._verts3d[2][0] < zmin:
+            zmin = points[point][0]._verts3d[2][0] - ( points[point][0]._verts3d[2][0] /2 )
+        if points[point][0]._verts3d[2][0] > zmax:
+            zmax = points[point][0]._verts3d[2][0] + ( points[point][0]._verts3d[2][0] /2 )    
+        
+    ax.set_xlim([xmin, xmax])
+    ax.set_ylim([ymin, ymax])
+    ax.set_zlim([zmin, zmax])
 
 
 
