@@ -1,19 +1,19 @@
 #include "DMAChannel.h"
 #include "ADC.h"
 #include <ArduinoJson.h>
-#include <OneWire.h> 
+#include <OneWire.h>
 #include <DallasTemperature.h>
 
 #define ADC_conv_speed ADC_CONVERSION_SPEED::VERY_HIGH_SPEED
 #define ADC_samp_speed ADC_SAMPLING_SPEED::VERY_HIGH_SPEED
 
 // Temperature reading digital pin number
-#define ONE_WIRE_BUS 10 
+#define ONE_WIRE_BUS 10
 // Setup one wire communications
-OneWire oneWire(ONE_WIRE_BUS); 
-// Pass our oneWire reference to Dallas Temperature. 
+OneWire oneWire(ONE_WIRE_BUS);
+// Pass our oneWire reference to Dallas Temperature.
 DallasTemperature sensors(&oneWire);
-  
+
 //The size of the DMA/ADC buffers. Sizes above 512 don't seem to work, which the datasheet agrees with if the DMA channels are in ELINK mode, which they must be.
 #define BUF_SIZE 512
 //DMAMEM is just a hint to allocate this in the lower memory addresses. As the stack is in the upper addresses, this should result in the DMA using a different memory controller to the CPU, so neither have to wait for each other
@@ -46,9 +46,9 @@ void setup() {
   delay(500);
 
   Serial.begin(115200);
-  
-  // Start up the library 
-  sensors.begin(); 
+
+  // Start up the library
+  sensors.begin();
 
   //Setup the ADC
   setup_adc();
@@ -62,7 +62,9 @@ volatile int pwm_counter = 0;
 //This is the maximum number of transitions to complete in a single pulse
 volatile int pwm_pulse_width = 8;
 //The digital pin to output the pulse on
-volatile int pwm_pin = 20;
+volatile int pwm_pin = -1;
+//The digital pin to output the pulse on that pulls the transducer low used with the amplification circuit
+volatile int pwm_pin_low = -1;
 //The timer interrupt used to generate the square wave
 IntervalTimer pwm_timer;
 //The number of times a sample is repeated when a sample command is sent (The division will be performed externally)
@@ -71,14 +73,35 @@ volatile int repetitions = 1;
 
 //This is the callback, called by pwm_timer.
 void pwm_isr(void) {
-  //First check the current pin state
-  bool oldState = digitalRead(pwm_pin);
-  //Toggle the pin state to cause a transition
-  digitalWrite(pwm_pin, !oldState);//Toggle
+
+  // Check if 1 pin or 2 pins are to be used in pwm mode
+  if (pwm_pin_low > -1) {
+    //First check the current pin states
+    bool oldState = digitalRead(pwm_pin);
+    bool oldState_low = digitalRead(pwm_pin_low);
+
+    //Toggle the pin state to cause a transition (Never have both pins set to high!)
+    if (oldState == true) {
+      digitalWrite(pwm_pin, !oldState);         //Toggle high pin to low first
+      digitalWrite(pwm_pin_low, !oldState_low); //Toggle low pin to high next
+    }
+    if (oldState == false) {
+      digitalWrite(pwm_pin_low, !oldState_low); //Toggle high pin to low first
+      digitalWrite(pwm_pin, !oldState);         //Toggle low pin to high next
+    }
+  } else {
+    //First check the current pin state
+    bool oldState = digitalRead(pwm_pin);
+    //Toggle the pin state to cause a transition
+    digitalWrite(pwm_pin, !oldState);//Toggle
+
+  }
+ 
   //Increase the counter and check if that's the end of the pulse
   pwm_counter += 1;
   if (pwm_counter > pwm_pulse_width) {
-    pinMode(pwm_pin, INPUT_DISABLE);
+    digitalWrite(pwm_pin, false);
+    digitalWrite(pwm_pin_low, false);
     pwm_timer.end();
   }
 }
@@ -165,14 +188,26 @@ void loop() {
         }
         repetitions = json_in_root["repetitions"];
         pwm_pin = json_in_root["PWM_pin"];
+        pwm_pin_low = json_in_root["PWM_pin_low"];
+        // if empty input field in command then the variable will be set to zero we want that to be -1 and not to PWM pin zero
+        if (pwm_pin_low == 0){
+          pwm_pin_low = -1;
+        }
         pwm_pulse_width = json_in_root["PWMwidth"];
         const unsigned int pwm_delay = json_in_root["PWMdelay"];
 
         for (int i = 0; i < repetitions; i = i + 1) {
           if (pwm_pin > -1) {
             pinMode(pwm_pin, OUTPUT);
-            digitalWrite(pwm_pin, 0);
+            digitalWrite(pwm_pin, true);
             pwm_counter = 0;
+          }
+          if (pwm_pin_low > -1) {
+            pinMode(pwm_pin_low, OUTPUT);
+            digitalWrite(pwm_pin_low, false);
+          }
+          if (digitalRead(pwm_pin) == true and digitalRead(pwm_pin_low) == true) {
+            digitalWrite(pwm_pin_low, false);
           }
 
           //Don't allow interrupts while we enable all the dma systems
@@ -262,7 +297,6 @@ void loop() {
 
         // Get temperature by index as there is only 1 sensor it is index 0
         float Temperature = sensors.getTempCByIndex(0);
-
         // Print out the success command
         Serial.print("{\"Status\":\"Success\", \"Temperature\":");
         Serial.print(Temperature);

@@ -39,13 +39,14 @@ else:
 
 # Define Constatns
 adc_resolution = 12             # ADC resolution in bits
-recieved_wave_adc0_or_adc1 = 0  # What ADC is the recieved signal if recording outputing and recieving signals at the same time
+recieved_wave_adc0_or_adc1 = 1  # What ADC is the recieved signal if recording outputing and recieving signals at the same time
 distance_correction = - 64      # Distance correction factor im mm
-repetitions = 5                # Do not use more than 16 if the teensy is storing the values as 16 bit intagers at 32 bits it can go in the thousands (Will take ages)
+repetitions = 15                # Do not use more than 16 if the teensy is storing the values as 16 bit intagers at 32 bits it can go in the thousands (Will take ages)
 PWMdelays = [0,18,36,54,72]     # PWM delays see read_with_resolution function from Functions for explanation (fractons of 90 to get even splits) set to [0] for fastest read and lowest resolution
                                 # --- Twice the resolutoin would be [0,45] and so on for higher resolutions
 PWMwidth = 6                    # Number of half waves to pulse the transducer with
 speed_of_sound, temp = find_speed_of_sound() # Reading the temperature with the use of a Dallas DS18B20 digital temperature sensor: accurate to +-0.5 degrees
+
 print("Speed of sound used is: ","%.2f" % speed_of_sound, "m/s")
 print("Calculated for a temp of: ",temp, "Degrees C")
 
@@ -73,7 +74,7 @@ if choose == ("1"):
     target_square_wave = square_wave_gen(PWMwidth, len(PWMdelays))[1]
     
     with Controller() as com:
-        command = {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0}
+        command = {"CMD":2, "ADC0Channels":[14,14,14,14], "ADC1Channels":[38,38,38,38], "PWM_pin":5, "PWM_pin_low":4, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0}
         while True:
             # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
             output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
