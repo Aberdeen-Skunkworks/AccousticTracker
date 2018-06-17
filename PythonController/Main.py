@@ -366,7 +366,7 @@ elif choose == ("3"):
         while True: 
 
             for pair in range(len(dists)):
-                command, recieved_wave_adc0_or_adc1 = create_read_command( dists[pair][0] + 1 , dists[pair][1] + 1 ,PWMwidth,repetitions)
+                command, recieved_wave_adc0_or_adc1 = create_read_command( dists[pair][0] + 1 , dists[pair][1] + 1 ,PWMwidth,repetitions) ## add one since transducers are numbered from 1 and not zero ...
                 # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
                 output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
                 # Allow the choice of what ADC the recieved signal comes from
