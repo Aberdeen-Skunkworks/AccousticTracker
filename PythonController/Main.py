@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import math
+from scipy.optimize import minimize
 from mpl_toolkits.mplot3d import Axes3D
 from Controller import Controller
 from Functions import correlation
@@ -31,19 +32,20 @@ from unit_tests import run_tests
 
 # Run unit tests to check for errors
 print(" ")
-if run_tests():
-    pass
-else:
-     raise Exception('Error some or multiple tests failed, aborting')
+#if run_tests():
+#    pass
+#else:
+#     raise Exception('Error some or multiple tests failed, aborting')
 
 
 
 # Define Constatns
 adc_resolution = 12             # ADC resolution in bits
 distance_correction = - 64      # Distance correction factor im mm
-repetitions = 15                # Do not use more than 16 if the teensy is storing the values as 16 bit intagers at 32 bits it can go in the thousands (Will take ages)
-PWMdelays = [0,18,36,54,72]     # PWM delays see read_with_resolution function from Functions for explanation (fractons of 90 to get even splits) set to [0] for fastest read and lowest resolution
+repetitions = 1                # Do not use more than 16 if the teensy is storing the values as 16 bit intagers at 32 bits it can go in the thousands (Will take ages)
+PWMdelays = [0,18,36,54,72, 46080, 46098, 46116, 46134, 46152]     # PWM delays see read_with_resolution function from Functions for explanation (fractons of 90 to get even splits) set to [0] for fastest read and lowest resolution
                                 # --- Twice the resolutoin would be [0,45] and so on for higher resolutions
+resolution = 5 # Number of repetitions to improve spacial resolution = number of points in PWM delays that are below 90
 PWMwidth = 6                    # Number of half waves to pulse the transducer with
 speed_of_sound, temp = find_speed_of_sound() # Reading the temperature with the use of a Dallas DS18B20 digital temperature sensor: accurate to +-0.5 degrees
 
@@ -55,7 +57,7 @@ print(" ")
 print("Control modes:")
 print("(1) = Distance between 2 transducers")
 print("(2) = Three transdcuer triangulation")
-print("(3) = Ping 4th listen on 1,2 and 3")
+print("(3) = Four transducer optimisation")
 print("(negitive numbers) = Debugging and test modes")
 print(" ")
 choose = input("Please choose a mode from above: ")
@@ -71,10 +73,10 @@ if choose == ("1"):
     li = [plt.plot([1,1], 'x-')[0] for i in range(4)]
     
     # Create the target wave using the square wave equation taking into account the resolution and number of pulses required Output is scaled to be plotted on microseconds scale
-    target_square_wave = square_wave_gen(PWMwidth, len(PWMdelays))[1]
+    target_square_wave = square_wave_gen(PWMwidth, resolution)[1]
     
     with Controller() as com:
-        command, recieved_wave_adc0_or_adc1 = create_read_command(1,2,PWMwidth,repetitions)
+        command, recieved_wave_adc0_or_adc1 = create_read_command(3,1,PWMwidth,repetitions)
         while True:
             # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
             output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
@@ -105,7 +107,7 @@ if choose == ("1"):
             li[1].set_label("Signal from ADC 1")
             
             # Send the recieved wave and the target wave to the correlation function  (Swithch target_saved to target_wave if you dont want to use the saved wave)
-            sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_square_wave)
+            sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_square_wave, PWMwidth, resolution)
             correlation_signal = np.multiply(correlation_signal, 0.1) # scale so it is nicer to plot
             correlation_signal_times = []
             for i in range(len(correlation_signal)):
@@ -154,21 +156,17 @@ elif choose == ("2"):
     points = [ax2.plot([1,1], 'o', markersize=12)[0] for i in range(3)]
     
     # List of commands that cycle through what transducer is pinging and which is recieving
-    command_list = [
-    {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":39, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0},
-    {"CMD":2, "ADC0Channels":[16,16,16,16], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0},
-    
-    {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[16,16,16,16], "PWM_pin":39, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0},
-    {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[16,16,16,16], "PWM_pin":20, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0},
-    
-    {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":22, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0},
-    {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[38,38,38,38], "PWM_pin":20, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0}]
-    
-    # List of what ADC the target wave will be on
-    recieved_wave_adc0_or_adc1_list = [1,0,0,1,0,1]
+    pairs = [[1,2],[2,1],[1,3],[3,1],[2,3],[3,2]]
+    command_list = []
+    recieved_wave_adc0_or_adc1_list = []
+    for i in range(6):
+
+        command, recieved_wave_adc0_or_adc1 = create_read_command(pairs[i][0],pairs[i][1],PWMwidth,repetitions)
+        command_list.append(command)
+        recieved_wave_adc0_or_adc1_list.append(recieved_wave_adc0_or_adc1)
     
     # Create the target wave using the square wave equation taking into account the resolution and number of pulses required Output is scaled to be plotted on microseconds scale
-    target_square_wave = square_wave_gen(PWMwidth, len(PWMdelays))[1]
+    target_square_wave = square_wave_gen(PWMwidth, resolution)[1]
     
     with Controller() as com:
         while True: 
@@ -213,7 +211,7 @@ elif choose == ("2"):
                 li[1].set_label("Signal from ADC 1")
                 
                 # Send the recieved wave and the target wave to the correlation function (Swithch target_saved to target_wave if you dont want to use the saved wave)
-                sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_square_wave)
+                sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_square_wave, PWMwidth, resolution)
                 correlation_signal = np.multiply(correlation_signal, 0.1) # scale so it is nicer to plot
                 correlation_signal_times = []
                 for i in range(len(correlation_signal)):
@@ -315,7 +313,7 @@ elif choose == ("2"):
             ax2.set_ylabel('y axis mm')
             ax2.legend()
         
-## ---------------------- Ping 4th listen on 1,2 and 3 --------------------- ##
+## ---------------------- 4 transducer optimisation --------------------- ##
     
 elif choose == ("3"):
     
@@ -340,43 +338,45 @@ elif choose == ("3"):
     ax2.set_ylabel('Y axis mm')
     ax2.set_zlabel('Z axis mm')
     
-    # Command order for listening is transducer 1 then 2 then 3 (Dont care about recording transmitting transducer as we pretend we cant read it)
-    # Ping 4 and listen on 1, 2 and 3
-    command_list = [
-    {"CMD":2, "ADC0Channels":[17,17,17,17], "ADC1Channels":[16,16,16,16], "PWM_pin":19, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0},
-    {"CMD":2, "ADC0Channels":[17,17,17,17], "ADC1Channels":[38,38,38,38], "PWM_pin":19, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0},
-    {"CMD":2, "ADC0Channels":[23,23,23,23], "ADC1Channels":[17,17,17,17], "PWM_pin":19, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0}]
-    
-    # List of what ADC the recieved signal will be on:
-    recieved_wave_adc0_or_adc1_list = [1, 1, 0]
     
     # Create the target wave using the square wave equation taking into account the resolution and number of pulses required Output is scaled to be plotted on microseconds scale
-    target_square_wave = square_wave_gen(PWMwidth, len(PWMdelays))[1]
+    target_square_wave = square_wave_gen(PWMwidth, resolution)[1]
     
+    #Number of transducers
+    Nt=4
+    
+    #Measured distances
+    dists = [
+       #[tid1, tid2, dist],
+       [1, 0, None],
+       [0, 1, None],
+       [0, 2, None],
+       [2, 0, None],
+       [0, 3, None],
+       [3, 0, None],
+       [1, 2, None],
+       [2, 1, None],
+       [1, 3, None],
+       [3, 1, None],
+       [2, 3, None],
+       [3, 2, None],
+    ]
+
     with Controller() as com:
         while True: 
-        
-            #Keeping track of all 6 distances: 1-2, 2-1, 1-3, 3-1, 2-3, 3-2
-            all_distances = []
-            
-            # Looping through the 6 distances to calculate
-            for mesurment in range(3):
-                
-                # Set up changing variables
-                command = command_list[mesurment]
-                recieved_wave_adc0_or_adc1 = recieved_wave_adc0_or_adc1_list[mesurment]
-                
+
+            for pair in range(len(dists)):
+                command, recieved_wave_adc0_or_adc1 = create_read_command( dists[pair][0] + 1 , dists[pair][1] + 1 ,PWMwidth,repetitions)
                 # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
                 output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
-            
-                # Allow the choice of what ADC the target signal comes from
+                # Allow the choice of what ADC the recieved signal comes from
                 if recieved_wave_adc0_or_adc1 == 0:
                     target_wave = []
                     # Take some percentage of the target wave to use as the target wave
-                    for i in range(int(0.2*len(output_adc1_sorted))):
+                    for i in range(int(0.3*len(output_adc1_sorted))):
                         target_wave.append(output_adc1_sorted[i])
                     recieved_signal = output_adc0_sorted
-                    
+                        
                 elif recieved_wave_adc0_or_adc1 == 1:
                     target_wave = []
                     # Take some percentage of the target wave to use as the target wave
@@ -385,7 +385,7 @@ elif choose == ("3"):
                     recieved_signal = output_adc1_sorted
                 else:
                     raise Exception('Pick ADC 1 or 0')
-                
+                        
                 # Plot the voltage data to the graph as lines
                 li[0].set_ydata(output_adc0_sorted)
                 li[0].set_xdata(times_x_axis_sorted)
@@ -395,8 +395,8 @@ elif choose == ("3"):
                 li[1].set_xdata(times_x_axis_sorted)
                 li[1].set_label("Signal from ADC 1")
                 
-                # Send the recieved wave and the target wave to the correlation function (Swithch target_saved to target_wave if you dont want to use the saved wave)
-                sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_square_wave)
+                # Send the recieved wave and the target wave to the correlation function  (Swithch target_saved to target_wave if you dont want to use the saved wave)
+                sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_square_wave, PWMwidth, resolution)
                 correlation_signal = np.multiply(correlation_signal, 0.1) # scale so it is nicer to plot
                 correlation_signal_times = []
                 for i in range(len(correlation_signal)):
@@ -406,55 +406,99 @@ elif choose == ("3"):
                 li[2].set_label("Correlation Fuction")
                 
                 # Calculate the distance to the transducer, knowing that sample rate is 12 per 40kHz wave and assuming speed of sound in air is 343 m/s
-                time_to_first_echo = times_x_axis_sorted[sample_number_of_echo]/1000000 # 1,000,000 to convert from microseconds to seconds
+                time_to_first_echo = times_x_axis_sorted[sample_number_of_echo]/1000000
                 distance_between_transducers = (speed_of_sound * time_to_first_echo * 1000) + distance_correction  # 100 to convert to cm and correction to allow callibration
-                #print("Sample Number = ", sample_number_of_echo)
-                #print("Distance = ", "%.2f" % distance_between_transducers, " mm")
                 distance_str = str("%.2f" % distance_between_transducers)
                 distance_label = "Estimated distance: " + distance_str + " mm"
-            
-                all_distances.append(distance_between_transducers)
-                
+                print()
+                print("Distance between transducer ", dists[pair][0] + 1 ,"and" ,dists[pair][1] + 1, "is", distance_between_transducers)
+                dists[pair][2] = distance_between_transducers
                 # Plot vertical line at the distance so it is visiable on the graph
                 li[3].set_ydata([-5000,5000])
                 li[3].set_xdata([times_x_axis_sorted[sample_number_of_echo], times_x_axis_sorted[sample_number_of_echo]])
                 li[3].set_label(distance_label)
                 
-                
-    
-                # Commands and labels for plotting the data continioustly for axis 1
+                # Commands and labels for plotting the data continioustly
                 ax1.legend()
                 ax1.set_ylim([-2,2]) 
                 ax1.set_ylabel('Voltage (V)')
                 ax1.set_xlabel('Time (micro seconds)')
-                title_list = ["Currently sampling transducer 1 ", "Currently sampling transducer 2 ", "Currently sampling  transducer 3"]
-                ax1.set_title(title_list[mesurment])
                 ax1.relim()
                 ax1.autoscale_view(True,True,True)
+                plt.gcf().canvas.draw()
                 plt.pause(0.01)
 
+            #A way of saving the Nt transducer positions to a linear array (which
+            #is all that the minimisation can take). We also use this as an
+            #opportunity to remove some positions from the minimisation.
+            def pos_to_x(tpos):
+               x = np.zeros((3*Nt - 3 - 2 * (Nt>1) - 1 * (Nt>2)))
+               #First transducer is at 0,0,0 so skip it
+               
+               #Second transducer is at r1x,0,0, so just save the first coordinate
+               if Nt > 1:
+                   x[0] = tpos[1][0]
+            
+               #Third transducer is at r2x,r2y,0
+               if Nt > 2:
+                   x[1] = tpos[2][0]
+                   x[2] = tpos[2][1]
+            
+               #Do the rest
+               for idx in range(3,Nt):
+                   x[3+(idx-3)*3+0] = tpos[idx][0]
+                   x[3+(idx-3)*3+1] = tpos[idx][1]
+                   x[3+(idx-3)*3+2] = tpos[idx][2]
+               return x
+            
+            #The reverse of pos_to_x
+            def x_to_pos(x):
+               tpos = np.zeros((Nt, 3))
+            
+               if Nt > 1:
+                   tpos[1][0] = x[0]
+            
+               if Nt > 2:
+                   tpos[2][0] = x[1]
+                   tpos[2][1] = x[2]
+            
+               for idx in range(3,Nt):
+                   tpos[idx][0] = x[3+(idx-3)*3+0]
+                   tpos[idx][1] = x[3+(idx-3)*3+1]
+                   tpos[idx][2] = x[3+(idx-3)*3+2]
+            
+               return tpos
+            
+            #The function to minmise
+            def f(x):
+               #Grab the positions out of x
+               tpos = x_to_pos(x)
+               #Sum up the square distance error
+               sumError=0
+               for idx1,idx2,d in dists:
+                   current_dist = np.linalg.norm(tpos[idx1]-tpos[idx2])
+                   error = (current_dist - d)**2
+                   sumError += error
+               return sumError
+            
+            #Initial guess for transducer locations
+            x0 = pos_to_x(np.zeros((Nt,3)))
+            #Call the minimiser
+            res = minimize(f, x0, method="nelder-mead", options={'xtol':1e-10})
+            #Extract the result
+            tpos = x_to_pos(res.x)
+            
+            #Now check it!
+            for idx1,idx2,d in dists:
+               current_dist = np.linalg.norm(tpos[idx1]-tpos[idx2])
+               print([idx1,idx2]," Target_distance=", d, "optimised=",current_dist)
+            
+                            
 
-
-
-            print("")
-            print("Distance from 1 to 4 = ", "%.2f" % all_distances[0], " mm")
-            print("Distance from 2 to 4 = ", "%.2f" % all_distances[1], " mm")
-            print("Distance from 3 to 4 = ", "%.2f" % all_distances[2], " mm")
-            
-            
-            guess = [34.400924447749503/2,34.400924447749503,34.400924447749503/2]
-            locations = [[0,0,0],[49.298756724853213,0,0],[23.923029907856428,51.603737775815745,0]]
-            distances_mesured = [all_distances[0], all_distances[1], all_distances[2]]
-            
-            location, error = optimise_location(guess, locations, distances_mesured)
-            
-            print("location = ", "%.2f" % location[0], "%.2f" % location[1], "%.2f" % location[2])
-            print("Error = ", "%.2f" % error)
-            
             # Floating point numbers are important for the 3d live plotting to work
-            points[0][0]._verts3d[0][0] = locations[0][0]
-            points[0][0]._verts3d[1][0] = locations[0][1]
-            points[0][0]._verts3d[2][0] = locations[0][2]
+            points[0][0]._verts3d[0][0] = tpos[0][0]
+            points[0][0]._verts3d[1][0] = tpos[0][1]
+            points[0][0]._verts3d[2][0] = tpos[0][2]
             
             """ Plotting lines in 3d only for 1 line needs more work to make it neater
             lines_3d[0][0]._verts3d[0].setflags(write=1)
@@ -470,22 +514,22 @@ elif choose == ("3"):
             lines_3d[0][0]._verts3d[2][1] = location[2]
             """
 
-            points[1][0]._verts3d[0][0] = locations[1][0]
-            points[1][0]._verts3d[1][0] = locations[1][1]
-            points[1][0]._verts3d[2][0] = locations[1][2]
+            points[1][0]._verts3d[0][0] = tpos[1][0]
+            points[1][0]._verts3d[1][0] = tpos[1][1]
+            points[1][0]._verts3d[2][0] = tpos[1][2]
             
-            points[2][0]._verts3d[0][0] = locations[2][0]
-            points[2][0]._verts3d[1][0] = locations[2][1]
-            points[2][0]._verts3d[2][0] = locations[2][2]
+            points[2][0]._verts3d[0][0] = tpos[2][0]
+            points[2][0]._verts3d[1][0] = tpos[2][1]
+            points[2][0]._verts3d[2][0] = tpos[2][2]
             
-            points[3][0]._verts3d[0][0] = location[0]
-            points[3][0]._verts3d[1][0] = location[1]
-            points[3][0]._verts3d[2][0] = location[2]
+            points[3][0]._verts3d[0][0] = tpos[3][0]
+            points[3][0]._verts3d[1][0] = tpos[3][1]
+            points[3][0]._verts3d[2][0] = tpos[3][2]
             
-            #autoscale_axis_3d(points, ax2)
-            ax2.set_xlim([-10, 50])
-            ax2.set_ylim([-10, 60])
-            ax2.set_zlim([0, 60])
+            autoscale_axis_3d(points, ax2)
+            #ax2.set_xlim([-10, 50])
+            #ax2.set_ylim([-10, 60])
+            #ax2.set_zlim([0, 60])
 
          
 ## ----------------------  Debugging and test mode --------------------- ##

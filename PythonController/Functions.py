@@ -28,7 +28,7 @@ plt.ylim(-2, 2)
 
 
 
-def correlation(signal, target_wave, plot = False):
+def correlation(signal, target_wave, PWMwidth, resolution, plot = False):
     """ Correlation function that takes in both a signal and a target wave signal and performes a correlation funciton on them. 
     It will output the index of the signal where the waves correlate most. Comment out the plotting lines to see the correlation plotted.
     """
@@ -40,6 +40,8 @@ def correlation(signal, target_wave, plot = False):
        csum = 0
        for j in range(len(target_wave)):
            csum += signal[i + j] * target_wave[j]
+       if i < (PWMwidth*resolution*18):
+           csum = 0
        correlation_signal.append(csum)
     
     # Show the correlator function and both waves on the same plot if the user sets plot to True.

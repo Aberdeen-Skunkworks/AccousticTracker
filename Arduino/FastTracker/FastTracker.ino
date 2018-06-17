@@ -231,7 +231,7 @@ void loop() {
             output_adcbuffer_0[i] += adcbuffer_0[i];
             output_adcbuffer_1[i] += adcbuffer_1[i];
           }
-
+        delay(2);
         }
 
         Serial.print("{\"Status\":\"Success\", \"ResultADC0\":[");
@@ -279,7 +279,7 @@ void loop() {
     case 4: {
         //Measure how long a ADC sample run takes
         elapsedMicros waiting;
-        for (int i = 0; i < 10000; i = i + 1) { // Mesure how long it takes to do a for loop (three instructions)then 6 nop instructions = 50 nanoseconds which divides into 1 microsecond easily
+        for (int i = 0; i < 46080; i = i + 1) { // Mesure how long it takes to do a for loop (three instructions)then 1 nop (one instruction)
           __asm__("nop\n\t");
         };
         int duration = waiting;
