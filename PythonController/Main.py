@@ -411,7 +411,7 @@ elif choose == ("3"):
                 distance_str = str("%.2f" % distance_between_transducers)
                 distance_label = "Estimated distance: " + distance_str + " mm"
                 print()
-                print("Distance between transducer ", dists[pair][0] + 1 ,"and" ,dists[pair][1] + 1, "is", distance_between_transducers)
+                print("Distance between transducer ", dists[pair][0] + 1 ," and " ,dists[pair][1] + 1, "is", distance_between_transducers)
                 dists[pair][2] = distance_between_transducers
                 # Plot vertical line at the distance so it is visiable on the graph
                 li[3].set_ydata([-5000,5000])
@@ -419,6 +419,8 @@ elif choose == ("3"):
                 li[3].set_label(distance_label)
                 
                 # Commands and labels for plotting the data continioustly
+                distance_title = "Distance between transducer " + str( dists[pair][0] + 1) + " and "  + str(dists[pair][1] + 1)
+                ax1.set_title(distance_title)
                 ax1.legend()
                 ax1.set_ylim([-2,2]) 
                 ax1.set_ylabel('Voltage (V)')
@@ -491,7 +493,7 @@ elif choose == ("3"):
             #Now check it!
             for idx1,idx2,d in dists:
                current_dist = np.linalg.norm(tpos[idx1]-tpos[idx2])
-               print([idx1,idx2]," Target_distance=", d, "optimised=",current_dist)
+               print([idx1,idx2]," Mesured distance =", d, "optimised distance =",current_dist)
             
                             
 
@@ -526,10 +528,10 @@ elif choose == ("3"):
             points[3][0]._verts3d[1][0] = tpos[3][1]
             points[3][0]._verts3d[2][0] = tpos[3][2]
             
-            autoscale_axis_3d(points, ax2)
-            #ax2.set_xlim([-10, 50])
-            #ax2.set_ylim([-10, 60])
-            #ax2.set_zlim([0, 60])
+            #autoscale_axis_3d(points, ax2)
+            ax2.set_xlim([-100, 100])
+            ax2.set_ylim([-100, 100])
+            ax2.set_zlim([-100, 100])
 
          
 ## ----------------------  Debugging and test mode --------------------- ##
