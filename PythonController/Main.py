@@ -23,6 +23,7 @@ from Functions import find_temperature
 from Functions import find_speed_of_sound
 from Functions import optimise_location
 from Functions import autoscale_axis_3d
+from Functions import create_read_command
 from unit_tests import run_tests
 
 
@@ -39,7 +40,6 @@ else:
 
 # Define Constatns
 adc_resolution = 12             # ADC resolution in bits
-recieved_wave_adc0_or_adc1 = 1  # What ADC is the recieved signal if recording outputing and recieving signals at the same time
 distance_correction = - 64      # Distance correction factor im mm
 repetitions = 15                # Do not use more than 16 if the teensy is storing the values as 16 bit intagers at 32 bits it can go in the thousands (Will take ages)
 PWMdelays = [0,18,36,54,72]     # PWM delays see read_with_resolution function from Functions for explanation (fractons of 90 to get even splits) set to [0] for fastest read and lowest resolution
@@ -74,7 +74,7 @@ if choose == ("1"):
     target_square_wave = square_wave_gen(PWMwidth, len(PWMdelays))[1]
     
     with Controller() as com:
-        command = {"CMD":2, "ADC0Channels":[14,14,14,14], "ADC1Channels":[38,38,38,38], "PWM_pin":5, "PWM_pin_low":4, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0}
+        command, recieved_wave_adc0_or_adc1 = create_read_command(1,2,PWMwidth,repetitions)
         while True:
             # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
             output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)

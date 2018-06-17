@@ -8,7 +8,7 @@
 #define ADC_samp_speed ADC_SAMPLING_SPEED::VERY_HIGH_SPEED
 
 // Temperature reading digital pin number
-#define ONE_WIRE_BUS 10
+#define ONE_WIRE_BUS 14
 // Setup one wire communications
 OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature.
@@ -303,7 +303,28 @@ void loop() {
         Serial.print("}\n");
         break;
       }
+    case 6: {
+        //Test pins for new board Flash led on 6 fast then slower
+        pinMode(2, OUTPUT);
+        pinMode(3, OUTPUT);
+        digitalWrite(2, LOW);
 
+        for (int i = 0; i < 200; i = i + 1) {
+          delay(i);
+          digitalWrite(3, HIGH);
+          delay(i);
+          digitalWrite(3, LOW);
+          int delay_time = i;
+          Serial.println(delay_time);
+        }
+
+
+        // Print out the success command
+        Serial.print("{\"Status\":\"Success\", \"Light up\":");
+        Serial.print("}\n");
+        break;
+      }
+      
     default: {
         Serial.print("{\"Status\":\"Fail\", \"Error\":\"Unrecognised command\"}\n");
         break;

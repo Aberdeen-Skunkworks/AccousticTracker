@@ -431,6 +431,52 @@ def autoscale_axis_3d(points, ax):
 
 
 
+def transducer_read_pin(transducer_number):
+    # Takes in transducer number and outputs what pin that transducer reads on
+    read_pins_list = [None, 37, 39, 16, 17, 19, 22]
+    
+    if transducer_number < 1 or transducer_number > (len(read_pins_list)-1):
+        raise Exception("Pick a transdcuer that exists in the list")
+    else:
+        return read_pins_list[transducer_number]
+
+def transducer_output_pins(transducer_number):
+    # Takes in transducer number and outputs both the high and low PWM pins NEVER SET BOTH PINS TO HIGH OR IT WILL FRY THE BOARD
+
+    pull_up_pins   = [None, 25, 12, 9, 6, 1, 3] # Pull up pin is the pin that when pulled high causes the transducer to be pulled high
+    pull_down_pins = [None, 24, 11, 8, 5, 0, 2] # Pull down pin is the pin that when pulled high causes the transducer to be pulled low
+    
+    if transducer_number < 1 or transducer_number > (len(pull_up_pins)-1):
+        raise Exception("Pick a transdcuer that exists in the list")
+    else:
+        return [pull_up_pins[transducer_number], pull_down_pins[transducer_number]]
+
+def adc_that_read_pin_on(transducer_number):
+    # Takes in transducer number and outputs what ADC that transducer should use to read
+    adc_list = [None, 1,1,1,1,2,2]
+    
+    if transducer_number < 1 or transducer_number > (len(adc_list)-1):
+        raise Exception("Pick a transdcuer that exists in the list")
+    else:
+        return adc_list[transducer_number]
+
+def create_read_command(read_transdcuer, ping_transdcuer, PWMwidth, repetitions):
+    
+    read_pin = transducer_read_pin(read_transdcuer)    
+    read_adc = adc_that_read_pin_on(read_transdcuer)
+    
+    PWM_pin, PWM_pin_low = transducer_output_pins(ping_transdcuer)
+    
+    if read_adc == 0:
+        command = {"CMD":2, "ADC0Channels":[read_pin,read_pin,read_pin,read_pin], "ADC1Channels":[38,38,38,38], "PWM_pin":PWM_pin, "PWM_pin_low":PWM_pin_low, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0}
+    else:
+        command = {"CMD":2, "ADC0Channels":[14,14,14,14], "ADC1Channels":[read_pin,read_pin,read_pin,read_pin], "PWM_pin":PWM_pin, "PWM_pin_low":PWM_pin_low, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0}
+
+    return command, read_adc
+
+
+
+
 
 
 
