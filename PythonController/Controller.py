@@ -25,7 +25,6 @@ class Controller():
                 ADC_1_digital_pins = out_json["ADC1Channels"]
                 ADC_0_sc1a_pins.append(digital_pin_to_sc1a( 0, ADC_0_digital_pins[i]) )
                 ADC_1_sc1a_pins.append(digital_pin_to_sc1a( 1, ADC_1_digital_pins[i]) )
-                
             out_json["ADC0Channels"] = ADC_0_sc1a_pins
             out_json["ADC1Channels"] = ADC_1_sc1a_pins
         

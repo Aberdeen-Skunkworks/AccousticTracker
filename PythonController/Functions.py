@@ -40,8 +40,8 @@ def correlation(signal, target_wave, PWMwidth, resolution, plot = False):
        csum = 0
        for j in range(len(target_wave)):
            csum += signal[i + j] * target_wave[j]
-       if i < (PWMwidth*resolution*18):
-           csum = 0
+       #if i < (PWMwidth*resolution*18):
+           #csum = 0
        correlation_signal.append(csum)
     
     # Show the correlator function and both waves on the same plot if the user sets plot to True.
