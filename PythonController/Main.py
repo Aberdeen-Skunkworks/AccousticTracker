@@ -112,9 +112,9 @@ if choose == ("1"):
             correlation_signal_times = []
             for i in range(len(correlation_signal)):
                 correlation_signal_times.append(times_x_axis_sorted[i])
-            li[2].set_ydata(correlation_signal)
-            li[2].set_xdata(correlation_signal_times)
-            li[2].set_label("Correlation Fuction")
+            #li[2].set_ydata(correlation_signal)
+            #li[2].set_xdata(correlation_signal_times)
+            #li[2].set_label("Correlation Fuction")
             
             # Calculate the distance to the transducer, knowing that sample rate is 12 per 40kHz wave and assuming speed of sound in air is 343 m/s
             time_to_first_echo = times_x_axis_sorted[sample_number_of_echo]/1000000
@@ -131,7 +131,7 @@ if choose == ("1"):
             
             # Commands and labels for plotting the data continioustly
             ax.legend()
-            ax.set_ylim([-2,2]) 
+            ax.set_ylim([-0.1,0.1]) 
             ax.set_ylabel('Voltage (V)')
             ax.set_xlabel('Time (micro seconds)')
             ax.relim()
