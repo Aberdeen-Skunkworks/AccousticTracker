@@ -231,7 +231,7 @@ void loop() {
             output_adcbuffer_0[i] += adcbuffer_0[i];
             output_adcbuffer_1[i] += adcbuffer_1[i];
           }
-        delay(2);
+        delay(3);
         }
 
         Serial.print("{\"Status\":\"Success\", \"ResultADC0\":[");

@@ -40,8 +40,8 @@ def correlation(signal, target_wave, PWMwidth, resolution, plot = False):
        csum = 0
        for j in range(len(target_wave)):
            csum += signal[i + j] * target_wave[j]
-       #if i < (PWMwidth*resolution*18):
-           #csum = 0
+       if i < (PWMwidth*resolution*18):
+           csum = 0
        correlation_signal.append(csum)
     
     # Show the correlator function and both waves on the same plot if the user sets plot to True.
@@ -455,7 +455,7 @@ def transducer_output_pins(transducer_number):
 
 def adc_that_read_pin_on(transducer_number):
     # Takes in transducer number and outputs what ADC that transducer should use to read
-    adc_list = [None, 1,1,1,1,2,2]
+    adc_list = [None, 1,1,1,1,0,0]
     
     if transducer_number < 1 or transducer_number > (len(adc_list)-1):
         raise Exception("Pick a transdcuer that exists in the list")
@@ -475,6 +475,79 @@ def create_read_command(read_transdcuer, ping_transdcuer, PWMwidth, repetitions)
         command = {"CMD":2, "ADC0Channels":[14,14,14,14], "ADC1Channels":[read_pin,read_pin,read_pin,read_pin], "PWM_pin":PWM_pin, "PWM_pin_low":PWM_pin_low, "PWMwidth":PWMwidth, "repetitions":repetitions, "PWMdelay":0}
 
     return command, read_adc
+
+
+
+
+def can_hear_transducer(listen_transducer, array_board, output_transducer):
+    
+    """
+    Listen_transducer is the transducer number of the locating transducer you want to listen on
+    Array board 1 or 2 for now
+    Output transducer from 1 to 88 on the array board
+    """
+
+    
+
+
+
+
+def turn_on_board_transducer(board, output_transducer):
+    from connect import Controller 
+    ## Need to edit the controler so it can switch to what board you want to connect to depending on an input, probably needs just hardcoded initially
+    ## or manual pulling out the usb of the board you dont want to connect to
+    with Controller() as ctl:        
+        
+        # Turn all transducers off
+        for i in range(ctl.outputs):
+            ctl.disableOutput(i)
+        # Turn the power up
+        ctl.setOutputDACPower(256)
+        ctl.setOutputDACDivisor(100)
+        
+        # Turn on the one transducer with no phase offset
+        ctl.setOffset(output_transducer, 0)
+        ctl.loadOffsets()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
