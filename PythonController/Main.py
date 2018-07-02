@@ -42,7 +42,7 @@ print(" ")
 # Define Constatns
 adc_resolution = 12             # ADC resolution in bits
 distance_correction = - 64      # Distance correction factor im mm
-repetitions = 10              # Do not use more than 16 if the teensy is storing the values as 16 bit intagers at 32 bits it can go in the thousands (Will take ages)
+repetitions = 1              # Do not use more than 16 if the teensy is storing the values as 16 bit intagers at 32 bits it can go in the thousands (Will take ages)
 PWMdelays = [0,18,36,54,72, 46080, 46098, 46116, 46134, 46152]     # PWM delays see read_with_resolution function from Functions for explanation (fractons of 90 to get even splits) set to [0] for fastest read and lowest resolution
                                 # --- Twice the resolutoin would be [0,45] and so on for higher resolutions
 resolution = 5 # Number of repetitions to improve spacial resolution = number of points in PWM delays that are below 90
@@ -76,7 +76,7 @@ if choose == ("1"):
     target_square_wave = square_wave_gen(PWMwidth, resolution)[1]
     
     with Controller() as com:
-        command, recieved_wave_adc0_or_adc1 = create_read_command(1,2,PWMwidth,repetitions)
+        command, recieved_wave_adc0_or_adc1 = create_read_command(3,2,PWMwidth,repetitions)
         while True:
             # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
             output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
