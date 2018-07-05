@@ -44,7 +44,9 @@ void setup() {
   //Setup the led
   pinMode(ledPin, OUTPUT);
   delay(500);
-
+  pinMode(27, OUTPUT);
+  digitalWrite(27,LOW);
+  
   Serial.begin(115200);
 
   // Start up the library
@@ -189,13 +191,10 @@ void loop() {
         repetitions = json_in_root["repetitions"];
         pwm_pin = json_in_root["PWM_pin"];
         pwm_pin_low = json_in_root["PWM_pin_low"];
-        // if empty input field in command then the variable will be set to zero we want that to be -1 and not to PWM pin zero
-        if (pwm_pin_low == 0){
-          pwm_pin_low = -1;
-        }
+
         pwm_pulse_width = json_in_root["PWMwidth"];
         const unsigned int pwm_delay = json_in_root["PWMdelay"];
-
+        digitalWrite(27,HIGH);
         for (int i = 0; i < repetitions; i = i + 1) {
           if (pwm_pin > -1) {
             pinMode(pwm_pin, OUTPUT);
@@ -233,6 +232,7 @@ void loop() {
           }
         delay(3);
         }
+        digitalWrite(27,LOW);
 
         Serial.print("{\"Status\":\"Success\", \"ResultADC0\":[");
         for (int i = 0; i < BUF_SIZE; i = i + 4) {

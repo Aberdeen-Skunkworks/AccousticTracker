@@ -76,7 +76,7 @@ if choose == ("1"):
     target_square_wave = square_wave_gen(PWMwidth, resolution)[1]
     
     with Controller() as com:
-        command, recieved_wave_adc0_or_adc1 = create_read_command(3,2,PWMwidth,repetitions)
+        command, recieved_wave_adc0_or_adc1 = create_read_command(1,4,PWMwidth,repetitions) # Read transducer, ping transducer
         while True:
             # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
             output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
@@ -112,9 +112,9 @@ if choose == ("1"):
             correlation_signal_times = []
             for i in range(len(correlation_signal)):
                 correlation_signal_times.append(times_x_axis_sorted[i])
-            #li[2].set_ydata(correlation_signal)
-            #li[2].set_xdata(correlation_signal_times)
-            #li[2].set_label("Correlation Fuction")
+            li[2].set_ydata(correlation_signal)
+            li[2].set_xdata(correlation_signal_times)
+            li[2].set_label("Correlation Fuction")
             
             # Calculate the distance to the transducer, knowing that sample rate is 12 per 40kHz wave and assuming speed of sound in air is 343 m/s
             time_to_first_echo = times_x_axis_sorted[sample_number_of_echo]/1000000
@@ -131,7 +131,7 @@ if choose == ("1"):
             
             # Commands and labels for plotting the data continioustly
             ax.legend()
-            ax.set_ylim([-0.1,0.1]) 
+            ax.set_ylim([-2,2]) 
             ax.set_ylabel('Voltage (V)')
             ax.set_xlabel('Time (micro seconds)')
             ax.relim()
@@ -322,17 +322,19 @@ elif choose == ("3"):
     ax1 = fig.add_subplot(2,1,1)
     ax2 = fig.add_subplot(2,1,2, projection='3d')
     # Create the lines and points that can be updated every loop. This means the figure does not need cleared every time its updated
-    li = [ax1.plot([1,1], 'x-')[0] for i in range(4)]
+    #li = [ax1.plot([1,1], 'x-')[0] for i in range(4)]
     
-    lines_3d = [] 
+    #lines_3d = [] 
     points = []
     
     points.append( ax2.plot([0.1],[0.1],[0.1], 'ro', markersize=12)) # Need to  be set as floats or they will defalt to ints and not work
     points.append( ax2.plot([0.1],[0.1],[0.1], 'bo', markersize=12))
     points.append( ax2.plot([0.1],[0.1],[0.1], 'go', markersize=12))
     points.append( ax2.plot([0.1],[0.1],[0.1], 'co', markersize=12))
+    points.append( ax2.plot([0.1],[0.1],[0.1], 'yo', markersize=12))
+    points.append( ax2.plot([0.1],[0.1],[0.1], 'ko', markersize=12))
     
-    lines_3d.append( ax2.plot([0.1,0],[0.1,0],[0.1,0]))
+    #lines_3d.append( ax2.plot([0.1,0],[0.1,0],[0.1,0]))
     
     ax2.set_xlabel('X axis mm')
     ax2.set_ylabel('Y axis mm')
@@ -343,30 +345,38 @@ elif choose == ("3"):
     target_square_wave = square_wave_gen(PWMwidth, resolution)[1]
     
     #Number of transducers
-    Nt=4
+    Nt=6
     
     #Measured distances
     dists = [
        #[tid1, tid2, dist],
-       [1, 0, None],
-       [0, 1, None],
-       [0, 2, None],
-       [2, 0, None],
        [0, 3, None],
+       [0, 4, None],
+       [0, 5, None],
        [3, 0, None],
-       [1, 2, None],
-       [2, 1, None],
+       [4, 0, None],
+       [5, 0, None],
+       
        [1, 3, None],
+       [1, 4, None],
+       [1, 5, None],
        [3, 1, None],
+       [4, 1, None],
+       [5, 1, None],
+       
        [2, 3, None],
+       [2, 4, None],
+       [2, 5, None],
        [3, 2, None],
+       [4, 2, None],
+       [5, 2, None],
     ]
 
     with Controller() as com:
         while True: 
 
             for pair in range(len(dists)):
-                command, recieved_wave_adc0_or_adc1 = create_read_command( dists[pair][0] + 1 , dists[pair][1] + 1 ,PWMwidth,repetitions) ## add one since transducers are numbered from 1 and not zero ...
+                command, recieved_wave_adc0_or_adc1 = create_read_command( dists[pair][0] + 1  , dists[pair][1] + 1 ,PWMwidth,repetitions) ## add one since transducers are numbered from 1 and not zero ...
                 # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
                 output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
                 # Allow the choice of what ADC the recieved signal comes from
@@ -528,6 +538,14 @@ elif choose == ("3"):
             points[3][0]._verts3d[1][0] = tpos[3][1]
             points[3][0]._verts3d[2][0] = tpos[3][2]
             
+            points[4][0]._verts3d[0][0] = tpos[4][0]
+            points[4][0]._verts3d[1][0] = tpos[4][1]
+            points[4][0]._verts3d[2][0] = tpos[4][2]
+            
+            points[5][0]._verts3d[0][0] = tpos[5][0]
+            points[5][0]._verts3d[1][0] = tpos[5][1]
+            points[5][0]._verts3d[2][0] = tpos[5][2]
+        
             #autoscale_axis_3d(points, ax2)
             ax2.set_xlim([-100, 100])
             ax2.set_ylim([-100, 100])

@@ -40,7 +40,7 @@ def correlation(signal, target_wave, PWMwidth, resolution, plot = False):
        csum = 0
        for j in range(len(target_wave)):
            csum += signal[i + j] * target_wave[j]
-       if i < (PWMwidth*resolution*18):
+       if i < (PWMwidth*resolution*30):
            csum = 0
        correlation_signal.append(csum)
     
@@ -448,7 +448,7 @@ def transducer_output_pins(transducer_number):
     pull_up_pins   = [None, 25, 12, 9, 6, 1, 3] # Pull up pin is the pin that when pulled high causes the transducer to be pulled high
     pull_down_pins = [None, 24, 11, 8, 5, 0, 2] # Pull down pin is the pin that when pulled high causes the transducer to be pulled low
     
-    if transducer_number < 1 or transducer_number > (len(pull_up_pins)-1):
+    if transducer_number < 1 or transducer_number > (len(pull_up_pins)):
         raise Exception("Pick a transdcuer that exists in the list")
     else:
         return [pull_up_pins[transducer_number], pull_down_pins[transducer_number]]
@@ -457,7 +457,7 @@ def adc_that_read_pin_on(transducer_number):
     # Takes in transducer number and outputs what ADC that transducer should use to read
     adc_list = [None, 1,1,1,1,0,0]
     
-    if transducer_number < 1 or transducer_number > (len(adc_list)-1):
+    if transducer_number < 1 or transducer_number > (len(adc_list)):
         raise Exception("Pick a transdcuer that exists in the list")
     else:
         return adc_list[transducer_number]
