@@ -88,7 +88,7 @@ def digital_pin_to_sc1a(ADC, pin):
     
         # Index is digital pin - value is sc1a number
         sc1a = [None , None , None , None , None , None , None , None , None , None , 
-        None , None , None , None , 5 , 14 , 8 , 9 , 13 , 2 , 6 , 7 , 15 , 4 , None , 
+        None , None , None , None , 5 , 14 , 8 , 9 , 13 , 12 , 6 , 7 , 15 , 4 , None , 
         None , None , None , None , None , None , None , None , 17 , 18 , None , None , 
         None , None , None , None , None , None , None , None , None , None , None , None , 
         None , None , None , None , None , None , None , None , None , None , None , None , 

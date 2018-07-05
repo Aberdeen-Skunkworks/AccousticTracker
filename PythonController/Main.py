@@ -76,7 +76,7 @@ if choose == ("1"):
     target_square_wave = square_wave_gen(PWMwidth, resolution)[1]
     
     with Controller() as com:
-        command, recieved_wave_adc0_or_adc1 = create_read_command(1,4,PWMwidth,repetitions) # Read transducer, ping transducer
+        command, recieved_wave_adc0_or_adc1 = create_read_command(5,1,PWMwidth,repetitions) # Read transducer, ping transducer
         while True:
             # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
             output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
@@ -328,11 +328,11 @@ elif choose == ("3"):
     points = []
     
     points.append( ax2.plot([0.1],[0.1],[0.1], 'ro', markersize=12)) # Need to  be set as floats or they will defalt to ints and not work
-    points.append( ax2.plot([0.1],[0.1],[0.1], 'bo', markersize=12))
-    points.append( ax2.plot([0.1],[0.1],[0.1], 'go', markersize=12))
+    points.append( ax2.plot([0.1],[0.1],[0.1], 'ro', markersize=12))
+    points.append( ax2.plot([0.1],[0.1],[0.1], 'ro', markersize=12))
     points.append( ax2.plot([0.1],[0.1],[0.1], 'co', markersize=12))
-    points.append( ax2.plot([0.1],[0.1],[0.1], 'yo', markersize=12))
-    points.append( ax2.plot([0.1],[0.1],[0.1], 'ko', markersize=12))
+    points.append( ax2.plot([0.1],[0.1],[0.1], 'co', markersize=12))
+    points.append( ax2.plot([0.1],[0.1],[0.1], 'co', markersize=12))
     
     #lines_3d.append( ax2.plot([0.1,0],[0.1,0],[0.1,0]))
     
