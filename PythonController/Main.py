@@ -41,13 +41,14 @@ print(" ")
 
 # Define Constatns
 adc_resolution = 12             # ADC resolution in bits
-distance_correction = - 64      # Distance correction factor im mm
-repetitions = 1              # Do not use more than 16 if the teensy is storing the values as 16 bit intagers at 32 bits it can go in the thousands (Will take ages)
-PWMdelays = [0,18,36,54,72, 46080, 46098, 46116, 46134, 46152]     # PWM delays see read_with_resolution function from Functions for explanation (fractons of 90 to get even splits) set to [0] for fastest read and lowest resolution
+distance_correction = - 48      # Distance correction factor im mm
+repetitions = 20              # Do not use more than 16 if the teensy is storing the values as 16 bit intagers at 32 bits it can go in the thousands (Will take ages)
+PWMdelays = [0,18,36,54,72]     # PWM delays see read_with_resolution function from Functions for explanation (fractons of 90 to get even splits) set to [0] for fastest read and lowest resolution
                                 # --- Twice the resolutoin would be [0,45] and so on for higher resolutions
 resolution = 5 # Number of repetitions to improve spacial resolution = number of points in PWM delays that are below 90
-PWMwidth = 6                    # Number of half waves to pulse the transducer with
+PWMwidth = 8                    # Number of half waves to pulse the transducer with
 speed_of_sound, temp = find_speed_of_sound() # Reading the temperature with the use of a Dallas DS18B20 digital temperature sensor: accurate to +-0.5 degrees
+first_run = True
 
 print("Speed of sound used is: ","%.2f" % speed_of_sound, "m/s")
 print("Calculated for a temp of: ",temp, "Degrees C")
@@ -76,7 +77,7 @@ if choose == ("1"):
     target_square_wave = square_wave_gen(PWMwidth, resolution)[1]
     
     with Controller() as com:
-        command, recieved_wave_adc0_or_adc1 = create_read_command(5,1,PWMwidth,repetitions) # Read transducer, ping transducer
+        command, recieved_wave_adc0_or_adc1 = create_read_command(1,3,PWMwidth,repetitions) # Read transducer, ping transducer
         while True:
             # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
             output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
@@ -108,7 +109,7 @@ if choose == ("1"):
             
             # Send the recieved wave and the target wave to the correlation function  (Swithch target_saved to target_wave if you dont want to use the saved wave)
             sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_square_wave, PWMwidth, resolution)
-            correlation_signal = np.multiply(correlation_signal, 0.1) # scale so it is nicer to plot
+            correlation_signal = np.multiply(correlation_signal, 0.5) # scale so it is nicer to plot
             correlation_signal_times = []
             for i in range(len(correlation_signal)):
                 correlation_signal_times.append(times_x_axis_sorted[i])
@@ -322,7 +323,7 @@ elif choose == ("3"):
     ax1 = fig.add_subplot(2,1,1)
     ax2 = fig.add_subplot(2,1,2, projection='3d')
     # Create the lines and points that can be updated every loop. This means the figure does not need cleared every time its updated
-    #li = [ax1.plot([1,1], 'x-')[0] for i in range(4)]
+    li = [ax1.plot([1,1], 'x-')[0] for i in range(4)]
     
     #lines_3d = [] 
     points = []
@@ -347,29 +348,38 @@ elif choose == ("3"):
     #Number of transducers
     Nt=6
     
-    #Measured distances
+    #Measured distances numbered from 0 - 5 so transducer 1 is 0 and so on
     dists = [
        #[tid1, tid2, dist],
+       [0, 2, None],
        [0, 3, None],
        [0, 4, None],
        [0, 5, None],
-       [3, 0, None],
-       [4, 0, None],
-       [5, 0, None],
        
        [1, 3, None],
        [1, 4, None],
        [1, 5, None],
-       [3, 1, None],
-       [4, 1, None],
-       [5, 1, None],
-       
        [2, 3, None],
        [2, 4, None],
        [2, 5, None],
+       [3, 4, None],
+       
+       [4, 5, None],
+       
+       [2, 0, None],
+       [3, 0, None],
+       [4, 0, None],
+       [5, 0, None],
+       
+       [3, 1, None],
+       [4, 1, None],
+       [5, 1, None],
        [3, 2, None],
        [4, 2, None],
        [5, 2, None],
+       [4, 3, None],
+       
+       [5, 4, None],
     ]
 
     with Controller() as com:
@@ -494,7 +504,12 @@ elif choose == ("3"):
                return sumError
             
             #Initial guess for transducer locations
-            x0 = pos_to_x(np.zeros((Nt,3)))
+            if first_run:
+                inital_guess = [[0,0,0],[90,0,0],[45,45,0],[90,0,200],[45,45,200],[0,0,200]]
+            else:
+                inital_guess = tpos
+                
+            x0 = pos_to_x(inital_guess)
             #Call the minimiser
             res = minimize(f, x0, method="nelder-mead", options={'xtol':1e-10})
             #Extract the result

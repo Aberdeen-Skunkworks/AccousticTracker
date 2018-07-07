@@ -8,14 +8,24 @@ def square_wave_gen(number_half_waves, resolution):
     from scipy import signal
     import matplotlib.pyplot as plt
     import numpy as np
-    
+    number_half_waves += 7
 
     # One wave is 25 microseconds
     t = np.linspace(0, 12.5*number_half_waves, 12*resolution*(number_half_waves/2), endpoint=False)
-    wave = -signal.square(2 * np.pi * 0.04 * t)*1.65
+    #wave = -signal.square(2 * np.pi * 0.04 * t)*1.65
+    
+    
+    Fs = 40000 * 12.5 * 2                  ## Sampling Rate
+    f  = 40000                       ## Frequency (in Hz)
+    ####### sine wave ###########
+    wave = -np.sin(2 * np.pi * f * t / Fs)
+    triangle = signal.triang(len(t))
+    peaked_wave = np.multiply(triangle,wave)
 
     
-    return t, wave
+    
+    
+    return t, peaked_wave
 """
 import matplotlib.pyplot as plt
 number_half_waves = 10
@@ -40,7 +50,7 @@ def correlation(signal, target_wave, PWMwidth, resolution, plot = False):
        csum = 0
        for j in range(len(target_wave)):
            csum += signal[i + j] * target_wave[j]
-       if i < (PWMwidth*resolution*30):
+       if i < (PWMwidth*resolution*18):
            csum = 0
        correlation_signal.append(csum)
     
