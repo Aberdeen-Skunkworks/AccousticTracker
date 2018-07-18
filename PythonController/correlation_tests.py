@@ -1,4 +1,4 @@
-signal = [ 
+signal_mesured = [ 
 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ,
 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ,
 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ,
@@ -340,34 +340,55 @@ signal = [
 -0.0545031738281 , -0.0684613037109 , -0.0816218261719 , -0.0946494140625 , -0.105682983398 , -0.115121337891 , -0.122964477539 ,
 -0.129744140625 , -0.135726196289 , -0.140113037109 , -0.144366943359 , -0.146626831055 , -0.147557373047 , -0.147557373047]
 
+
 import numpy as np
+from scipy.optimize import curve_fit
+from scipy import signal
 import matplotlib.pyplot as plt
 
+
+def two_poly(x, a, b, c):
+    return a*x**2 + b*x + c
+
+def peak_func(x):
+    pass
 
 
 maxima_indexs = []
 maxima_values = []
-times = np.linspace(1,len(signal),len(signal), endpoint=True, dtype=int)
+times = np.linspace(1,len(signal_mesured),len(signal_mesured), endpoint=True, dtype=int)
 
-for i in range(1,len(signal) - 1):
+for i in range(1,len(signal_mesured) - 1):
     
-    if signal[i-1] < signal[i] > signal[i+1] and signal[i] > 0.2* max(signal):
+    if signal_mesured[i-1] < signal_mesured[i] > signal_mesured[i+1] and signal_mesured[i] > 0.2* max(signal_mesured):
         maxima_indexs.append(i)
-        maxima_values.append(signal[i])
+        maxima_values.append(signal_mesured[i])
         
-from scipy import signal
-import matplotlib.pyplot as plt
-import numpy as np
 
 
-#plt.plot(times, signal,"ro")
-#plt.plot(maxima_indexs, maxima_values, "bo")
-        
-        
-"""
-Takes in number of half waves and resolution in multiples of 12 samples per wave 1 = 12 samples per wave 2 = 24 so on 
-Output square wave oscillating at 40,000 Hz with the x axis in microseconds and centered around zero    
-"""
+curve = curve_fit(two_poly, maxima_indexs, maxima_values)
+
+x_curve = np.linspace(min(maxima_indexs)-50,max(maxima_indexs)+50,1000)
+y_curve = []
+a = curve[0][0]
+b = curve[0][1]
+c = curve[0][2]
+#d = curve[0][3]
+for i in range(len(x_curve)):
+    y_curve.append(two_poly(x_curve[i], a, b, c))
+
+plt.plot(x_curve, y_curve)
+plt.plot(times, signal_mesured,"ro")
+plt.plot(maxima_indexs, maxima_values, "bo")
+    
+
+
+
+"""    
+
+#Takes in number of half waves and resolution in multiples of 12 samples per wave 1 = 12 samples per wave 2 = 24 so on 
+#Output square wave oscillating at 40,000 Hz with the x axis in microseconds and centered around zero    
+
 
 number_half_waves = 10
 
@@ -390,7 +411,7 @@ plt.plot(sig)
 plt.plot(triangle)
 plt.plot(peaked_wave)
 
-
+"""
 
 
 
