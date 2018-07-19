@@ -1,6 +1,6 @@
 ## Functions used in the main acoustic tracker program
 
-def square_wave_gen(number_half_waves, resolution):
+def square_wave_gen(number_half_waves, resolution, samples_per_wave):
     """
     Takes in number of half waves and resolution in multiples of 12 samples per wave 1 = 12 samples per wave 2 = 24 so on 
     Output square wave oscillating at 40,000 Hz with the x axis in microseconds and centered around zero    
@@ -8,10 +8,10 @@ def square_wave_gen(number_half_waves, resolution):
     from scipy import signal
     import matplotlib.pyplot as plt
     import numpy as np
-    number_half_waves += 7
+    number_half_waves += 4
 
     # One wave is 25 microseconds
-    t = np.linspace(0, 12.5*number_half_waves, 12*resolution*(number_half_waves/2), endpoint=False)
+    t = np.linspace(0, 12.5*number_half_waves, int(samples_per_wave*resolution*(number_half_waves/2)), endpoint=False)
     #wave = -signal.square(2 * np.pi * 0.04 * t)*1.65
     
     
@@ -50,7 +50,7 @@ def correlation(signal, target_wave, PWMwidth, resolution, plot = False):
        csum = 0
        for j in range(len(target_wave)):
            csum += signal[i + j] * target_wave[j]
-       if i < (PWMwidth*resolution*18):
+       if i < (PWMwidth*resolution*12):
            csum = 0
        correlation_signal.append(csum)
     
@@ -259,7 +259,7 @@ def transducer_info(transducer_number):
 
 
 
-def read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays):
+def read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays, time_per_sample):
     import numpy as np
     # Function takes in a command with PWM delay set at 0
     # Also takes in the adc resolution the com that the board is connected to and the number of repetitions and also the PWM delays to loop through in an array like [0,30,60]
@@ -302,7 +302,7 @@ def read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays):
         voltages_adc_0, voltages_adc_1 = scale_around_zero(background_voltage_0, background_voltage_1, voltages_adc_0_not_scaled, voltages_adc_1_not_scaled, adc_resolution)
         
         # Calculate the times in microseconds that the samples are taken at for each of the resolutions
-        times_microseconds = np.linspace(pwm_delay_to_microseconds(PWMdelays[resoultion]), (len(voltages_adc_0)*2+pwm_delay_to_microseconds(PWMdelays[resoultion])), num=len(voltages_adc_0), endpoint=True)
+        times_microseconds = np.linspace(pwm_delay_to_microseconds(PWMdelays[resoultion]), (len(voltages_adc_0)*time_per_sample+pwm_delay_to_microseconds(PWMdelays[resoultion])), num=len(voltages_adc_0), endpoint=True)
         
         # Append the outputs for each resolution to the final output variables
         output_adc0 = np.concatenate([output_adc0, voltages_adc_0])
@@ -317,7 +317,7 @@ def read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays):
 
 
 def pwm_delay_to_microseconds(pwm_delay):
-    miliseconds = pwm_delay * 0.0222222222222222222222222
+    miliseconds = pwm_delay * 0.0208333333333
     return miliseconds
     
     
@@ -332,7 +332,21 @@ def find_temperature():
         else:
             return reply["Temperature"]
             
-        
+def find_samples_per_wave():
+    from Controller import Controller
+    with Controller() as com:
+        command =  {"CMD":3}
+        reply = com.send_json(command)
+        if reply["Status"] != "Success":
+            raise Exception("Failed to start conversion", reply)
+            
+        else:
+            time_for_512_samples = reply["SampleDurationuS"] # microseconds
+            time_per_sample = time_for_512_samples / 512 # microseconds
+            
+            samples_per_wave = 25/time_per_sample # 25 microseconds for a 40khz wave
+            
+            return samples_per_wave, time_per_sample
         
 def find_speed_of_sound():
     temp = find_temperature()
