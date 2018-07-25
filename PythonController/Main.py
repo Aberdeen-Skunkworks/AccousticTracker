@@ -30,24 +30,19 @@ from Functions import find_samples_per_wave
 
 
 
-# Run unit tests to check for errors
-print(" ")
-#if run_tests():
-#    pass
-#else:
-#     raise Exception('Error some or multiple tests failed, aborting')
-
-
 
 # Define Constatns
 samples_per_wave, time_per_sample = find_samples_per_wave()
+
+teensy_cpu_speed_hz = 180000000 # CPU speed of the teensy board CHECK THIS! very important
+delays_to_get_to_end_of_sample = (time_per_sample*512*1000)/((1/teensy_cpu_speed_hz)*4*10**9) # 512 samples 1000 to convert to nanoseconds then the bottom of the fraction is the time for 4 cpu cycles
+delays_per_sample = time_per_sample/((1/teensy_cpu_speed_hz)*4*10**6)
 adc_resolution = 12             # ADC resolution in bits
 distance_correction = - 48      # Distance correction factor im mm
-repetitions = 5              # Do not use more than 16 if the teensy is storing the values as 16 bit intagers at 32 bits it can go in the thousands (Will take ages)
-PWMdelays = [0,11,22,33,44,55]     # PWM delays see read_with_resolution function from Functions for explanation (fractons of 90 to get even splits) set to [0] for fastest read and lowest resolution
-                                # --- Twice the resolutoin would be [0,45] and so on for higher resolutions
-resolution = 5 # Number of repetitions to improve spacial resolution = number of points in PWM delays that are below 90
-PWMwidth = 8                    # Number of half waves to pulse the transducer with
+repetitions = 10                # Do not use more than 16 if the teensy is storing the values as 16 bit intagers at 32 bits it can go in the thousands (Will take ages)
+PWMdelays = [0, int(delays_per_sample/5), int(2*(delays_per_sample/5)), int(3*(delays_per_sample/5)), int(4*(delays_per_sample/5))]               # Delay of 1 means the delay will take 4 cpu cycles of the teensy (eg at 216MHz 1 would equal a delay of 18.52 nanoseconds)
+resolution = 5                  # Number of repetitions to improve spacial resolution = number of points in PWM delays that are below 90
+PWMwidth = 6                    # Number of half waves to pulse the transducer with
 speed_of_sound, temp = find_speed_of_sound() # Reading the temperature with the use of a Dallas DS18B20 digital temperature sensor: accurate to +-0.5 degrees
 
 first_run = True
@@ -79,10 +74,10 @@ if choose == ("1"):
     target_square_wave = square_wave_gen(PWMwidth, resolution, samples_per_wave)[1]
     
     with Controller() as com:
-        command, recieved_wave_adc0_or_adc1 = create_read_command(5,1,PWMwidth,repetitions) # Read transducer, ping transducer
+        command, recieved_wave_adc0_or_adc1 = create_read_command(4,5,PWMwidth,repetitions) # Read transducer, ping transducer
         while True:
             # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
-            output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays, time_per_sample)
+            output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays, time_per_sample, teensy_cpu_speed_hz)
             # Allow the choice of what ADC the recieved signal comes from
             if recieved_wave_adc0_or_adc1 == 0:
                 target_wave = []
@@ -110,7 +105,7 @@ if choose == ("1"):
                     
             # Send the recieved wave and the target wave to the correlation function  (Swithch target_saved to target_wave if you dont want to use the saved wave)
             sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_square_wave, PWMwidth, resolution)
-            correlation_signal = np.multiply(correlation_signal, 0.2) # scale so it is nicer to plot
+            correlation_signal = np.multiply(correlation_signal, 0.5) # scale so it is nicer to plot
             correlation_signal_times = []
             for i in range(len(correlation_signal)):
                 correlation_signal_times.append(times_x_axis_sorted[i])
@@ -168,7 +163,7 @@ elif choose == ("2"):
         recieved_wave_adc0_or_adc1_list.append(recieved_wave_adc0_or_adc1)
     
     # Create the target wave using the square wave equation taking into account the resolution and number of pulses required Output is scaled to be plotted on microseconds scale
-    target_square_wave = square_wave_gen(PWMwidth, resolution)[1]
+    target_square_wave = square_wave_gen(PWMwidth, resolution, samples_per_wave)[1]
     
     with Controller() as com:
         while True: 
@@ -184,7 +179,7 @@ elif choose == ("2"):
                 recieved_wave_adc0_or_adc1 = recieved_wave_adc0_or_adc1_list[mesurment]
                 
                 # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
-                output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
+                output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays, time_per_sample, teensy_cpu_speed_hz)
             
                 # Allow the choice of what ADC the target signal comes from
                 if recieved_wave_adc0_or_adc1 == 0:
@@ -214,7 +209,7 @@ elif choose == ("2"):
                 
                 # Send the recieved wave and the target wave to the correlation function (Swithch target_saved to target_wave if you dont want to use the saved wave)
                 sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_square_wave, PWMwidth, resolution)
-                correlation_signal = np.multiply(correlation_signal, 0.1) # scale so it is nicer to plot
+                correlation_signal = np.multiply(correlation_signal, 0.5) # scale so it is nicer to plot
                 correlation_signal_times = []
                 for i in range(len(correlation_signal)):
                     correlation_signal_times.append(times_x_axis_sorted[i])
@@ -344,7 +339,7 @@ elif choose == ("3"):
     
     
     # Create the target wave using the square wave equation taking into account the resolution and number of pulses required Output is scaled to be plotted on microseconds scale
-    target_square_wave = square_wave_gen(PWMwidth, resolution)[1]
+    target_square_wave = square_wave_gen(PWMwidth, resolution, samples_per_wave)[1]
     
     #Number of transducers
     Nt=6
@@ -352,33 +347,43 @@ elif choose == ("3"):
     #Measured distances numbered from 0 - 5 so transducer 1 is 0 and so on
     dists = [
        #[tid1, tid2, dist],
+       [0, 1, None],
        [0, 2, None],
        [0, 3, None],
        [0, 4, None],
        [0, 5, None],
        
+       [1, 2, None],
        [1, 3, None],
        [1, 4, None],
        [1, 5, None],
+       
        [2, 3, None],
        [2, 4, None],
        [2, 5, None],
+       
        [3, 4, None],
+       [3, 5, None],
        
        [4, 5, None],
        
+       [1, 0, None],
        [2, 0, None],
        [3, 0, None],
        [4, 0, None],
        [5, 0, None],
-       
+      
+       [2, 1, None],
        [3, 1, None],
        [4, 1, None],
        [5, 1, None],
+       
        [3, 2, None],
        [4, 2, None],
        [5, 2, None],
+       
        [4, 3, None],
+       [5, 3, None],
        
        [5, 4, None],
     ]
@@ -389,7 +394,7 @@ elif choose == ("3"):
             for pair in range(len(dists)):
                 command, recieved_wave_adc0_or_adc1 = create_read_command( dists[pair][0] + 1  , dists[pair][1] + 1 ,PWMwidth,repetitions) ## add one since transducers are numbered from 1 and not zero ...
                 # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
-                output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays)
+                output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays, time_per_sample, teensy_cpu_speed_hz)
                 # Allow the choice of what ADC the recieved signal comes from
                 if recieved_wave_adc0_or_adc1 == 0:
                     target_wave = []
@@ -397,6 +402,12 @@ elif choose == ("3"):
                     for i in range(int(0.3*len(output_adc1_sorted))):
                         target_wave.append(output_adc1_sorted[i])
                     recieved_signal = output_adc0_sorted
+                    # Plot the voltage data to the graph as lines
+                    li[1].set_ydata(0)
+                    li[1].set_xdata(0)
+                    li[0].set_ydata(output_adc0_sorted)
+                    li[0].set_xdata(times_x_axis_sorted)
+                    li[0].set_label("Signal from ADC 0")
                         
                 elif recieved_wave_adc0_or_adc1 == 1:
                     target_wave = []
@@ -404,21 +415,17 @@ elif choose == ("3"):
                     for i in range(int(0.2*len(output_adc0_sorted))):
                         target_wave.append(output_adc0_sorted[i])
                     recieved_signal = output_adc1_sorted
+                    li[0].set_ydata(0)
+                    li[0].set_xdata(0)
+                    li[1].set_ydata(output_adc1_sorted)
+                    li[1].set_xdata(times_x_axis_sorted)
+                    li[1].set_label("Signal from ADC 1")
                 else:
                     raise Exception('Pick ADC 1 or 0')
-                        
-                # Plot the voltage data to the graph as lines
-                li[0].set_ydata(output_adc0_sorted)
-                li[0].set_xdata(times_x_axis_sorted)
-                li[0].set_label("Signal from ADC 0")
-                
-                li[1].set_ydata(output_adc1_sorted)
-                li[1].set_xdata(times_x_axis_sorted)
-                li[1].set_label("Signal from ADC 1")
                 
                 # Send the recieved wave and the target wave to the correlation function  (Swithch target_saved to target_wave if you dont want to use the saved wave)
                 sample_number_of_echo, correlation_signal = correlation(recieved_signal, target_square_wave, PWMwidth, resolution)
-                correlation_signal = np.multiply(correlation_signal, 0.1) # scale so it is nicer to plot
+                correlation_signal = np.multiply(correlation_signal, 0.6) # scale so it is nicer to plot
                 correlation_signal_times = []
                 for i in range(len(correlation_signal)):
                     correlation_signal_times.append(times_x_axis_sorted[i])

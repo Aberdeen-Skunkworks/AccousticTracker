@@ -4,8 +4,8 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#define ADC_conv_speed ADC_CONVERSION_SPEED::VERY_HIGH_SPEED
-#define ADC_samp_speed ADC_SAMPLING_SPEED::VERY_HIGH_SPEED
+#define ADC_conv_speed ADC_CONVERSION_SPEED::MED_SPEED    //VERY_HIGH_SPEED
+#define ADC_samp_speed ADC_SAMPLING_SPEED::MED_SPEED
 
 // Temperature reading digital pin number
 #define ONE_WIRE_BUS 14
@@ -214,7 +214,7 @@ void loop() {
           if (pwm_pin > -1) {
             pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
             // To be able to delay in the nanoseconds range a for loop that performs a no operation or nop is used. The for loop takes three cpu instructions and the nop takes one.
-            // So in total a PWM delay of 1 will delay the start of the ADC by 4 cpu cycles. At 180MHz thats 22.222222222 repeating nano seconds.
+            // So in total a PWM delay of 1 will delay the start of the ADC by 4 cpu cycles. 
             for (int i = 0; i < pwm_delay; i = i + 1) {
               __asm__("nop\n\t");
             };
@@ -230,7 +230,7 @@ void loop() {
             output_adcbuffer_0[i] += adcbuffer_0[i];
             output_adcbuffer_1[i] += adcbuffer_1[i];
           }
-        delay(3);
+          delay(3);
         }
         digitalWrite(27,LOW);
 
@@ -305,15 +305,18 @@ void loop() {
       }
     case 6: {
         //Test pins for new board Flash led on 6 fast then slower
-        pinMode(2, OUTPUT);
-        pinMode(3, OUTPUT);
-        digitalWrite(2, LOW);
+        pinMode(0, OUTPUT);
+        pinMode(27, OUTPUT);
+        digitalWrite(0, LOW);
+        digitalWrite(27, LOW);
 
         for (int i = 0; i < 200; i = i + 1) {
-          delay(i);
-          digitalWrite(3, HIGH);
-          delay(i);
-          digitalWrite(3, LOW);
+          delay(10);
+          digitalWrite(27, HIGH);
+          digitalWrite(0, HIGH);
+          delay(10);
+          digitalWrite(27, LOW);
+          digitalWrite(0, LOW);
           int delay_time = i;
           Serial.println(delay_time);
         }
