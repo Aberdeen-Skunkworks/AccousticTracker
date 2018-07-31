@@ -3,6 +3,8 @@
 #include <ArduinoJson.h>
 #include <OneWire.h>
 #include <DallasTemperature.h>
+#define HWSERIAL_1 Serial5
+#define HWSERIAL_2 Serial4
 
 #define ADC_conv_speed ADC_CONVERSION_SPEED::MED_SPEED    //VERY_HIGH_SPEED
 #define ADC_samp_speed ADC_SAMPLING_SPEED::MED_SPEED
@@ -45,9 +47,18 @@ void setup() {
   pinMode(ledPin, OUTPUT);
   delay(500);
   pinMode(27, OUTPUT);
-  digitalWrite(27,LOW);
-  
+  digitalWrite(27, LOW);
+
+  //sync pin to low
+  pinMode(35, OUTPUT);
+  digitalWrite(35, LOW);
+
+
   Serial.begin(115200);
+  HWSERIAL_1.begin(460800);
+  HWSERIAL_2.begin(460800);
+
+
 
   // Start up the library
   sensors.begin();
@@ -98,7 +109,7 @@ void pwm_isr(void) {
     digitalWrite(pwm_pin, !oldState);//Toggle
 
   }
- 
+
   //Increase the counter and check if that's the end of the pulse
   pwm_counter += 1;
   if (pwm_counter > pwm_pulse_width) {
@@ -194,7 +205,7 @@ void loop() {
 
         pwm_pulse_width = json_in_root["PWMwidth"];
         const unsigned int pwm_delay = json_in_root["PWMdelay"];
-        digitalWrite(27,HIGH);
+        digitalWrite(27, HIGH);
         for (int i = 0; i < repetitions; i = i + 1) {
           if (pwm_pin > -1) {
             pinMode(pwm_pin, OUTPUT);
@@ -214,7 +225,7 @@ void loop() {
           if (pwm_pin > -1) {
             pwm_timer.begin(pwm_isr, 12);  // blinkLED to run every 0.15 seconds
             // To be able to delay in the nanoseconds range a for loop that performs a no operation or nop is used. The for loop takes three cpu instructions and the nop takes one.
-            // So in total a PWM delay of 1 will delay the start of the ADC by 4 cpu cycles. 
+            // So in total a PWM delay of 1 will delay the start of the ADC by 4 cpu cycles.
             for (int i = 0; i < pwm_delay; i = i + 1) {
               __asm__("nop\n\t");
             };
@@ -232,7 +243,7 @@ void loop() {
           }
           delay(3);
         }
-        digitalWrite(27,LOW);
+        digitalWrite(27, LOW);
 
         Serial.print("{\"Status\":\"Success\", \"ResultADC0\":[");
         for (int i = 0; i < BUF_SIZE; i = i + 4) {
@@ -327,14 +338,81 @@ void loop() {
         Serial.print("}\n");
         break;
       }
-      
-    default: {
-        Serial.print("{\"Status\":\"Fail\", \"Error\":\"Unrecognised command\"}\n");
+
+    case 7: {
+        int incomingByte;
+
+        Serial.clear();
+        HWSERIAL_1.clear();
+
+        digitalWrite(27, HIGH);
+        HWSERIAL_1.write(192);
+        HWSERIAL_1.write(0);
+        HWSERIAL_1.write(0);
+        digitalWrite(27, LOW);
+
+        delay(100);
+
+        Serial.println(" ");
+        while (HWSERIAL_1.available() > 0) {
+          incomingByte = HWSERIAL_1.read();
+          Serial.print("From FPGA: ");
+          Serial.print(incomingByte, DEC);
+          Serial.print(" ");
+          Serial.println(incomingByte, BIN);
+
+        }
         break;
       }
+
+    case 8: {
+        int incomingByte;
+
+        Serial.clear();
+        HWSERIAL_2.clear();
+
+        HWSERIAL_2.write(192);
+        delay(5);
+        HWSERIAL_2.write(0);
+        delay(5);
+        HWSERIAL_2.write(0);
+
+        delay(100);
+
+        Serial.println(" ");
+        while (HWSERIAL_2.available() > 0) {
+          incomingByte = HWSERIAL_2.read();
+          Serial.print("From FPGA: ");
+          Serial.print(incomingByte, DEC);
+          Serial.print(" ");
+          Serial.println(incomingByte, BIN);
+
+        }
+        break;
+
+      }
+
+
+
+    case 9: {
+
+        for (int i = 0; i < 100; i = i + 1) {
+          digitalWrite(35, HIGH);
+          delay(1);
+          digitalWrite(35, LOW);
+          delay(1000);
+        }
+
+      break;
   }
 
-  digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
+default: {
+    Serial.print("{\"Status\":\"Fail\", \"Error\":\"Unrecognised command\"}\n");
+    break;
+  }
+}
+
+digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
 }
 
 void setup_dma() {
