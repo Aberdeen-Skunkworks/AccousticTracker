@@ -216,7 +216,7 @@ void loop() {
             pinMode(pwm_pin_low, OUTPUT);
             digitalWrite(pwm_pin_low, false);
           }
-          if (digitalRead(pwm_pin) == true and digitalRead(pwm_pin_low) == true) {
+          if (digitalRead(pwm_pin) == true && digitalRead(pwm_pin_low) == true) {
             digitalWrite(pwm_pin_low, false);
           }
 
