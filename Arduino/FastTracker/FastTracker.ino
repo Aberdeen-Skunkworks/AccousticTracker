@@ -55,8 +55,8 @@ void setup() {
 
 
   Serial.begin(115200);
-  HWSERIAL_1.begin(460800);
-  HWSERIAL_2.begin(460800);
+  HWSERIAL_1.begin(460800, SERIAL_8N1);
+  HWSERIAL_2.begin(460800, SERIAL_8N1);
 
 
 
@@ -368,17 +368,14 @@ void loop() {
     case 8: {
         int incomingByte;
 
+		digitalWrite(27, HIGH);
         Serial.clear();
         HWSERIAL_2.clear();
 
         HWSERIAL_2.write(192);
-        delay(5);
         HWSERIAL_2.write(0);
-        delay(5);
         HWSERIAL_2.write(0);
-
         delay(100);
-
         Serial.println(" ");
         while (HWSERIAL_2.available() > 0) {
           incomingByte = HWSERIAL_2.read();
@@ -388,6 +385,7 @@ void loop() {
           Serial.println(incomingByte, BIN);
 
         }
+		digitalWrite(27, LOW);
         break;
 
       }
