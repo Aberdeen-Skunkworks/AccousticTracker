@@ -339,28 +339,44 @@ void loop() {
         break;
       }
 
-    case 7: {
-        int incomingByte;
+    case 7: { // Case 7 for board 1 using hardware serial 5 on the teensy
 
-        Serial.clear();
-        HWSERIAL_1.clear();
+		// Clear serial buffers
+		Serial.clear();
+		HWSERIAL_1.clear();
 
+		// load in the incoming bytes and set up variables
+		int incomingByte_FPGA;
+		char Bytestream[] = {json_in_root["Bytestream"]};
+		unsigned char byte_a;
+		unsigned char byte_b;
+		unsigned char byte_c;
+	
+		Serial.print(Bytestream);
+
+		byte_a = Bytestream[0];
+		byte_b = Bytestream[1];
+		byte_c = Bytestream[2];
+		
+		// Trigger high before write
         digitalWrite(27, HIGH);
-        HWSERIAL_1.write(192);
-        HWSERIAL_1.write(0);
-        HWSERIAL_1.write(0);
+		// Send all three command bytes at once
+        HWSERIAL_1.write(byte_a);
+        HWSERIAL_1.write(byte_b);
+        HWSERIAL_1.write(byte_c);
+		// Trigger Low after write
         digitalWrite(27, LOW);
 
-        delay(100);
+		// Delay to allow FPGA to reply
+        delay(1);
 
         Serial.println(" ");
         while (HWSERIAL_1.available() > 0) {
-          incomingByte = HWSERIAL_1.read();
+		  incomingByte_FPGA = HWSERIAL_1.read();
           Serial.print("From FPGA: ");
-          Serial.print(incomingByte, DEC);
+          Serial.print(incomingByte_FPGA, DEC);
           Serial.print(" ");
-          Serial.println(incomingByte, BIN);
-
+          Serial.println(incomingByte_FPGA, BIN);
         }
         break;
       }
