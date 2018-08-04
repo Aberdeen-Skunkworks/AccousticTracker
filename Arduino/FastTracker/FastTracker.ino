@@ -135,6 +135,218 @@ void dma2_isr(void) {
   dma2->TCD->DADDR = &adcbuffer_1[0];
 }
 
+void sendCmd(byte bytearray[3], int board) {
+
+	// Define the reply data structue
+	byte FPGA_reply[3];
+
+	// Clear serial buffer on the correct board
+	Serial.clear();
+	if (board == 1) {
+		HWSERIAL_1.clear();
+	}
+	else if (board == 2) {
+		HWSERIAL_2.clear();
+	}
+
+	// Trigger high before write
+	digitalWrite(27, HIGH);
+
+	// Send all three command bytes at once to the correct board
+	if (board == 1) {
+		HWSERIAL_1.write(bytearray, 3);
+	}
+	else if (board == 2) {
+		HWSERIAL_2.write(bytearray, 3);
+	}
+
+	// Trigger Low after write
+	digitalWrite(27, LOW);
+
+	// Delay to allow FPGA to reply
+	delay(1);
+
+	// Read in the reply one byte at a time
+	if (board == 1) {
+		FPGA_reply[0] = HWSERIAL_1.read();
+		FPGA_reply[1] = HWSERIAL_1.read();
+		FPGA_reply[2] = HWSERIAL_1.read();
+	}
+	else if (board == 2) {
+		FPGA_reply[0] = HWSERIAL_2.read();
+		FPGA_reply[1] = HWSERIAL_2.read();
+		FPGA_reply[2] = HWSERIAL_2.read();
+	}
+
+	// Print out the error message if the send command and the echo are different
+	if (FPGA_reply != bytearray) {
+		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Recieved different reply from FPGA\", \"sent\":");
+		Serial.print(bytearray[0]);
+		Serial.print(bytearray[1]);
+		Serial.print(bytearray[2]);
+		Serial.print(", \"recieved\":");
+		Serial.print(FPGA_reply[0]);
+		Serial.print(FPGA_reply[1]);
+		Serial.print(FPGA_reply[2]);
+		Serial.print("}\n");
+	}
+	// Otherwise Print out the success command
+	else {
+		Serial.print("{\"Status\":\"Success\", \"Sent and recieved the correct reply fromt the FPGA\":");
+		Serial.print("}\n");
+	}
+}
+
+void setOffset(byte clock, double offset, int board, bool enable = TRUE) {
+	// clock is the clock on the FPGA corresponding to one of the transducers on the baord 0-87 for the original boards
+	//	The structure of the command
+	//	  23  22  21  20  19  18  17  16  15  14  13  12  11  10  9   8   7   6   5   4   3   2   1   0
+	//	| 1 | 0 | 0 | X | X | X | X | X | 0 | X | X | C | Z | Y | Y | Y | 0 | Y | Y | Y | Y | Y | Y | Y |
+	//	X = 7 bit clock select
+	//	Y = 10 bit half - phase offset
+	//	Z = phase of first oscillation
+	//	C = Output enable bit
+	if (clock > 0b01111111) {
+		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Clock selected is too large!\"}\n");
+	}
+
+	int offset_int = 1250 * (offset / (2 * 3.14159265359));
+
+	int sign = 0;
+	offset_int = offset_int % 1250;
+	if (offset_int > 624) {
+		sign = 1;
+		offset_int = offset_int - 624;
+	}
+
+	// Place the first 7 bits of the offset into the low_offset byte
+	byte low_offset = offset_int & 0b01111111;
+
+	// Place the remaining 3 bits of the offset, plus the sign bit, into the high offset
+	byte high_offset = ((offset_int >> 7) & 0b00000111) + (sign << 3);
+
+	// The command byte has the command bit set, plus 5 bits of the clock select
+	byte b1 = 0b10000000 | (clock >> 2);
+
+	// The next bit has the output enable bit set high, plus the last two bits of the clock select, and the high offset bits
+	byte enable_bit = 0b00010000;
+	if (enable == FALSE) {
+		enable_bit = 0b00000000;
+	}
+	byte b2 = enable_bit | ((clock & 0b00000011) << 5) | high_offset;
+
+	// The last byte contains the low offset bits
+	byte b3 = low_offset;
+
+	// Set the command inot a byte array
+	byte bytearray[3];
+	bytearray[0] = b1;
+	bytearray[1] = b2;
+	bytearray[2] = b3;
+
+	sendCmd(bytearray, board);
+}
+
+
+int get_board_outputs(int board) {
+	byte bytearray[3];
+
+	// Send FPGA command to get the number of outputs
+	bytearray[0] = 0b11000000;
+	bytearray[1] = 0b00000000;
+	bytearray[2] = 0b00000000;
+
+	return getonewordreply(bytearray, board);
+}
+
+int getVersion(int board) {
+	byte bytearray[3];
+
+	// Send FPGA command to get the version number
+	bytearray[0] = 0b11101000;
+	bytearray[1] = 0b00000000;
+	bytearray[2] = 0b00000000;
+
+	return getonewordreply(bytearray, board);
+}
+
+int loadOffsets(int board) {
+	byte bytearray[3];
+
+	// Send FPGA command to load the offsets 
+	bytearray[0] = 0b11110000;
+	bytearray[1] = 0b00000000;
+	bytearray[2] = 0b00000000;
+
+	return getonewordreply(bytearray, board);
+}
+
+int getonewordreply(byte bytearray[3], int board) {
+	// Define the reply data type
+	int FPGA_reply;
+
+	// Send the command to the FPGA and read the reply byte
+	sendCmd(bytearray, board);
+	FPGA_reply = HWSERIAL_1.read();
+
+	// Check if a byte is recieved (If not serial.read returns a -1)
+	if (FPGA_reply == -1) {
+		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Never recieved a reply from the FPGA\"}\n");
+	}
+	// Retuen the FPGA reply
+	return FPGA_reply;
+}
+
+void  setOutputDACPower(int power, int board) {
+	//	The structure of the command
+	//	 23  22  21  20  19  18  17  16  15  14  13  12  11  10  9   8   7   6   5   4   3   2   1   0
+	// | 1 | 1 | 1 | X | X | X | X | X | 0 | X | X | X | X | X | X | Y | 0 | Y | Y | Y | Y | Y | Y | Y |
+	// X = UNUSED
+	// Y = 7 bit DAC value
+	if (power > 256) { // Not a mistake!the DAC goes from 0 - 256, not 255!
+		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Power selected is too large!\"}\n");
+	}
+
+	byte bytearray[3];
+	bytearray[0] = 0b11100000;
+	bytearray[1] = 0b00000011 & (power >> 7);
+	bytearray[2] = 0b01111111 & power;
+
+	sendCmd(bytearray, board);
+}
+
+void setOutputDACDivisor(int divisor, int board) {
+	//	The structure of the command
+	//	 23  22  21  20  19  18  17  16  15  14  13  12  11  10  9   8   7   6   5   4   3   2   1   0
+	//	| 1 | 0 | 1 | Y | Y | Y | Y | Y | 0 | Y | Y | Y | Y | Y | Y | Y | 0 | Y | Y | Y | Y | Y | Y | Y |
+	//	X = UNUSED
+	//	Y = 19 bit DAC value
+	if (divisor > 0b1111111111111111111) {
+		Serial.print("{\"Status\":\"Fail\", \"Error\":\"DAC dicisor selected is too large!\"}\n");
+	}
+	if (divisor < 50) {
+		Serial.print("{\"Status\":\"Fail\", \"Error\":\"You'll burn out the board if the divisor is too low (<50).\"}\n");
+	}
+
+	byte bytearray[3];
+	bytearray[0] = 0b10100000 | (0b00011111 & (divisor >> 14));
+	bytearray[1] = 0b01111111 & (divisor >> 7);
+	bytearray[2] = 0b01111111 & divisor;
+
+	sendCmd(bytearray, board);
+}
+
+void setOutputDACFreq(double freq, int board) {
+	setOutputDACPower(128, board); // 50 % duty cycle, turns the board off and on for equal amounts of time
+	int divisor_int = (5e7 / (4 * freq) + 1);
+	setOutputDACDivisor(divisor_int, board);
+}
+
+void disableOutput(int clock, int board) { // clock is the clock on the FPGA corresponding to one of the transducers on the baord 0-87 for the original boards
+	setOffset(clock, 0, board, FALSE);
+}
+
+
 void loop() {
   //Try to parse the JSON commands coming in via the serial port
   DynamicJsonBuffer jsonBuffer;
@@ -332,83 +544,85 @@ void loop() {
           Serial.println(delay_time);
         }
 
-
         // Print out the success command
         Serial.print("{\"Status\":\"Success\", \"Light up\":");
         Serial.print("}\n");
         break;
       }
-    case 7: { // Case 7 for board 1 using hardware serial 5 on the teensy
+  
+    case 7: {
 
-		// Clear serial buffers
-		Serial.clear();
-		HWSERIAL_1.clear();
+	volatile int board = json_in_root["board"];
+	volatile int transducer_number = json_in_root["transducer_number"];
+	volatile double offset = json_in_root["offset"];
+	volatile int power = json_in_root["power"];
+	volatile int divisor = json_in_root["divisor"];
+	volatile double freq = json_in_root["freq"];
+	volatile bool enable = json_in_root["enable"];
+	volatile int board_outputs = 0;
 
-		// load in the incoming bytes and set up variables
-		int incomingByte_FPGA;
-		char Bytestream[] = {json_in_root["Bytestream"]};
-		unsigned char byte_a;
-		unsigned char byte_b;
-		unsigned char byte_c;
-	
-		Serial.print(Bytestream);
+	// Check if the board number has been send and then whether or not the board has 88 outputs otherwise print errors back to the PC
+	if (json_in_root["board"].success()) {
+		if (board == 1) {
+			board_outputs = get_board_outputs(1);
+			if (board_outputs != 88) {
+				Serial.print("{\"Status\":\"Fail\", \"Error\":\"Board 1 outputs not equal to 88\"}\n");
+				break;
+			}
+		}
+		else if (board == 2) {
+			board_outputs = get_board_outputs(2);
+			if (board_outputs != 88) {
+				Serial.print("{\"Status\":\"Fail\", \"Error\":\"Board 2 outputs not equal to 88\"}\n");
+				break;
+			}
+		}
+		else {
+			Serial.print("{\"Status\":\"Fail\", \"Error\":\"Board number not avaliable pick 1 or 2\"}\n");
+			break;
+		}
+	}
+	else {
+		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Recieved no board number in JASON\"}\n");
+		break;
+	}
 
-		byte_a = Bytestream[0];
-		byte_b = Bytestream[1];
-		byte_c = Bytestream[2];
+	// Check if the transcuer number picked is avaliable on the board selected
+	if (json_in_root["transducer_number"].success()) {
+		if (transducer_number >= board_outputs) {
+			Serial.print("{\"Status\":\"Fail\", \"Error\":\"Transducer number picked is higher than avaliable outputs\"}\n");
+			break;
+		}
+	}
+
+	// Check if command is a disable or enable command
+	if (enable == FALSE) {
+		disableOutput(transducer_number, board);
+	}
+	// If it is enable then check what type and do it
+	else if (json_in_root["transducer_number"].success() && json_in_root["offset"].success() && json_in_root["board"].success()) {
+		setOffset(transducer_number, offset, board);
+	}
+	else if (json_in_root["power"].success()) {
+		setOutputDACPower(power, board);
+	}
+	else if (json_in_root["divisor"].success()) {
+		setOutputDACDivisor(divisor, board);
+	}
+	else if (json_in_root["freq"].success()) {
+		setOutputDACFreq(freq, board);
+	}
+	else {
 		
-		// Trigger high before write
-        digitalWrite(27, HIGH);
-		// Send all three command bytes at once
-        HWSERIAL_1.write(byte_a);
-        HWSERIAL_1.write(byte_b);
-        HWSERIAL_1.write(byte_c);
-		// Trigger Low after write
-        digitalWrite(27, LOW);
+	}
 
-		// Delay to allow FPGA to reply
-        delay(1);
-
-        Serial.println(" ");
-        while (HWSERIAL_1.available() > 0) {
-		  incomingByte_FPGA = HWSERIAL_1.read();
-          Serial.print("From FPGA: ");
-          Serial.print(incomingByte_FPGA, DEC);
-          Serial.print(" ");
-          Serial.println(incomingByte_FPGA, BIN);
-        }
-        break;
-      }
-    case 8: {
-        int incomingByte;
-
-		digitalWrite(27, HIGH);
-        Serial.clear();
-        HWSERIAL_2.clear();
-
-        HWSERIAL_2.write(192);
-        HWSERIAL_2.write(0);
-        HWSERIAL_2.write(0);
-        delay(100);
-        Serial.println(" ");
-        while (HWSERIAL_2.available() > 0) {
-          incomingByte = HWSERIAL_2.read();
-          Serial.print("From FPGA: ");
-          Serial.print(incomingByte, DEC);
-          Serial.print(" ");
-          Serial.println(incomingByte, BIN);
-
-        }
-		digitalWrite(27, LOW);
-        break;
-
-      }
-    case 9: {
-
-       
-
+	// Print out the success command
+	Serial.print("{\"Status\":\"Success\", \"Light up\":");
+	Serial.print("}\n");
       break;
   }
+
+
 default: {
     Serial.print("{\"Status\":\"Fail\", \"Error\":\"Unrecognised command\"}\n");
     break;
@@ -419,214 +633,7 @@ digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
 }
 
 
-byte get_board_outputs(int board) {
-	byte bytearray[3];
 
-	// Send FPGA command to get the number of outputs
-	bytearray[0] = 0b11000000;
-	bytearray[1] = 0b00000000;
-	bytearray[2] = 0b00000000;
-
-	return getonewordreply(bytearray, board);
-}
-
-byte getVersion(int board) {
-	byte bytearray[3];
-
-	// Send FPGA command to get the version number
-	bytearray[0] = 0b11101000;
-	bytearray[1] = 0b00000000;
-	bytearray[2] = 0b00000000;
-
-	return getonewordreply(bytearray, board);
-}
-
-byte loadOffsets(int board) {
-	byte bytearray[3];
-
-	// Send FPGA command to load the offsets 
-	bytearray[0] = 0b11110000;
-	bytearray[1] = 0b00000000;
-	bytearray[2] = 0b00000000;
-
-	return getonewordreply(bytearray, board);
-}
-
-byte getonewordreply(byte bytearray[3], int board) {
-	// Define the reply data type
-	byte FPGA_reply;
-	
-	// Send the command to the FPGA and read the reply byte
-	sendCmd(bytearray, board);
-	FPGA_reply = HWSERIAL_1.read();
-
-	// Check if a byte is recieved (If not serial.read returns a -1)
-	if (FPGA_reply == -1) {
-		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Never recieved a reply from the FPGA\"}\n");
-	}
-	// Retuen the FPGA reply
-	return FPGA_reply;
-}
-
-void  setOutputDACPower(int power, int board) {
-//	The structure of the command
-//	 23  22  21  20  19  18  17  16  15  14  13  12  11  10  9   8   7   6   5   4   3   2   1   0
-// | 1 | 1 | 1 | X | X | X | X | X | 0 | X | X | X | X | X | X | Y | 0 | Y | Y | Y | Y | Y | Y | Y |
-// X = UNUSED
-// Y = 7 bit DAC value
-	if (power > 256) { // Not a mistake!the DAC goes from 0 - 256, not 255!
-		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Power selected is too large!\"}\n");
-	}
-
-	byte bytearray[3];
-	bytearray[0] = 0b11100000;
-	bytearray[1] = 0b00000011 & (power >> 7);
-	bytearray[2] = 0b01111111 & power;
-
-	sendCmd(bytearray, board);
-}
-
-void setOutputDACDivisor(int divisor, int board) {
-//	The structure of the command
-//	 23  22  21  20  19  18  17  16  15  14  13  12  11  10  9   8   7   6   5   4   3   2   1   0
-//	| 1 | 0 | 1 | Y | Y | Y | Y | Y | 0 | Y | Y | Y | Y | Y | Y | Y | 0 | Y | Y | Y | Y | Y | Y | Y |
-//	X = UNUSED
-//	Y = 19 bit DAC value
-	if (divisor > 0b1111111111111111111) {
-		Serial.print("{\"Status\":\"Fail\", \"Error\":\"DAC dicisor selected is too large!\"}\n");
-	}
-	if (divisor < 50) {
-		Serial.print("{\"Status\":\"Fail\", \"Error\":\"You'll burn out the board if the divisor is too low (<50).\"}\n");
-	}
-
-	byte bytearray[3];
-	bytearray[0] = 0b10100000 | (0b00011111 & (divisor >> 14));
-	bytearray[1] = 0b01111111 & (divisor >> 7);
-	bytearray[2] = 0b01111111 & divisor;
-
-	sendCmd(bytearray, board);
-}
-
-void setOutputDACFreq(double freq, int board) {
-	setOutputDACPower(128, board); // 50 % duty cycle, turns the board off and on for equal amounts of time
-	int divisor_int = (5e7 / (4 * freq) + 1);
-	setOutputDACDivisor(divisor_int, board);
-}
-
-void disableOutput(int clock, int board) { // clock is the clock on the FPGA corresponding to one of the transducers on the baord 0-87 for the original boards
-	setOffset(clock, 0, board, FALSE);
-}
-
-void sendCmd(byte bytearray[3], int board) {
-
-	// Define the reply data structue
-	byte FPGA_reply[3];
-
-	// Clear serial buffer on the correct board
-	Serial.clear();
-	if (board == 1) {
-		HWSERIAL_1.clear();
-	}
-	else if (board == 2){
-		HWSERIAL_2.clear();
-	}
-
-	// Trigger high before write
-	digitalWrite(27, HIGH);
-
-	// Send all three command bytes at once to the correct board
-	if (board == 1) {
-		HWSERIAL_1.write(bytearray, 3);
-	}
-	else if (board == 2) {
-		HWSERIAL_2.write(bytearray, 3);
-	}
-
-	// Trigger Low after write
-	digitalWrite(27, LOW);
-
-	// Delay to allow FPGA to reply
-	delay(1);
-
-	// Read in the reply one byte at a time
-	if (board == 1) {
-		FPGA_reply[0] = HWSERIAL_1.read();
-		FPGA_reply[1] = HWSERIAL_1.read();
-		FPGA_reply[2] = HWSERIAL_1.read();
-	}
-	else if (board == 2) {
-		FPGA_reply[0] = HWSERIAL_2.read();
-		FPGA_reply[1] = HWSERIAL_2.read();
-		FPGA_reply[2] = HWSERIAL_2.read();
-	}
-
-	// Print out the error message if the send command and the echo are different
-	if (FPGA_reply != bytearray) {
-		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Recieved different reply from FPGA\", \"sent\":");
-		Serial.print(bytearray[0]);
-		Serial.print(bytearray[1]);
-		Serial.print(bytearray[2]);
-		Serial.print(", \"recieved\":");
-		Serial.print(FPGA_reply[0]);
-		Serial.print(FPGA_reply[1]);
-		Serial.print(FPGA_reply[2]);
-		Serial.print("}\n");
-	}
-	// Otherwise Print out the success command
-	else {
-		Serial.print("{\"Status\":\"Success\", \"Sent and recieved the correct reply fromt the FPGA\":");
-		Serial.print("}\n");
-	}
-}
-
-void setOffset(byte clock, double offset, int board, bool enable = TRUE) { // clock is the clock on the FPGA corresponding to one of the transducers on the baord 0-87 for the original boards
-//	The structure of the command
-//	  23  22  21  20  19  18  17  16  15  14  13  12  11  10  9   8   7   6   5   4   3   2   1   0
-//	| 1 | 0 | 0 | X | X | X | X | X | 0 | X | X | C | Z | Y | Y | Y | 0 | Y | Y | Y | Y | Y | Y | Y |
-//	X = 7 bit clock select
-//	Y = 10 bit half - phase offset
-//	Z = phase of first oscillation
-//	C = Output enable bit
-	if (clock > 0b01111111) {
-		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Clock selected is too large!\"}\n");
-	}
-
-	int offset_int = 1250 * (offset / (2 * 3.14159265359));
-
-	int sign = 0;
-	offset_int = offset_int % 1250;
-	if (offset_int > 624) {
-		sign = 1;
-		offset_int = offset_int - 624;
-	}
-
-	// Place the first 7 bits of the offset into the low_offset byte
-	byte low_offset = offset_int & 0b01111111;
-
-	// Place the remaining 3 bits of the offset, plus the sign bit, into the high offset
-	byte high_offset = ((offset_int >> 7) & 0b00000111) + (sign << 3);
-
-	// The command byte has the command bit set, plus 5 bits of the clock select
-	byte b1 = 0b10000000 | (clock >> 2);
-
-	// The next bit has the output enable bit set high, plus the last two bits of the clock select, and the high offset bits
-	byte enable_bit = 0b00010000;
-	if (enable == FALSE) {
-		enable_bit = 0b00000000;
-	}
-	byte b2 = enable_bit | ((clock & 0b00000011) << 5) | high_offset;
-
-	// The last byte contains the low offset bits
-	byte b3 = low_offset;
-
-	// Set the command inot a byte array
-	byte bytearray[3];
-	bytearray[0] = b1;
-	bytearray[1] = b2;
-	bytearray[2] = b3;
-
-	sendCmd(bytearray, board);
-}
 
 void setup_dma() {
   //This sets up the DMA controllers to run the ADCs and transfer out the data
