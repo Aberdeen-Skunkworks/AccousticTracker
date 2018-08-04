@@ -502,6 +502,32 @@ def create_read_command(read_transdcuer, ping_transdcuer, PWMwidth, repetitions)
     return command, read_adc
 
 
+def create_board_command_offset(board, transducer_number, offset, enable = True):
+    # Board = 1 or 2 for which board you want to connect to
+    # Transducer number from 0 to 87 for the transducer on that board you want to connect to
+    # Offset which is the offset in radiens 0 to 2pi for how phase shifted the sound signal will be can be any number as it just wraps around so pi = 3pi and so on this number is discretised by the teensy
+    # Enable is if the transducer is off or not. setting this to falce with a valid transducer and board number will turn that speaker off
+    command = {"CMD":7, "board":board, "transducer_number":transducer_number, "offset":offset, "enable":enable}
+    return command
+
+def create_board_command_power(board, power):
+    # Power is a number between 1 and 256: #Not a mistake! the DAC goes from 0-256, not 255! which controlls the boards overall modulation 128 would be a 50% duty
+    command = {"CMD":7, "board":board, "power":power}
+    return command
+
+def create_board_command_divisor(board, divisor):
+    # Divisor is a divisior of the power allowing for other frequencys to be modulated on the board no number lower than 50 and none greater than 524,287 is allowed
+    command = {"CMD":7, "board":board, "divisor":divisor}
+    return command
+
+def create_board_command_freq(board, freq):
+    # Frequency uses the divisor to modulate the board at the typed frequency in HZ 
+    command = {"CMD":7, "board":board, "freq":freq}
+    return command
+
+
+
+
 
 
 def can_hear_transducer(listen_transducer, array_board, output_transducer):
