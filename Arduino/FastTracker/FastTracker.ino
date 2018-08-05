@@ -197,7 +197,7 @@ void sendCmd(byte bytearray[3], int board) {
 	}
 }
 
-void setOffset(byte clock, double offset, int board, bool enable = TRUE) {
+void setOffset(byte clock, double offset, int board, bool enable = true) {
 	// clock is the clock on the FPGA corresponding to one of the transducers on the baord 0-87 for the original boards
 	//	The structure of the command
 	//	  23  22  21  20  19  18  17  16  15  14  13  12  11  10  9   8   7   6   5   4   3   2   1   0
@@ -230,7 +230,7 @@ void setOffset(byte clock, double offset, int board, bool enable = TRUE) {
 
 		// The next bit has the output enable bit set high, plus the last two bits of the clock select, and the high offset bits
 		byte enable_bit = 0b00010000;
-		if (enable == FALSE) {
+		if (enable == false) {
 			enable_bit = 0b00000000;
 		}
 		byte b2 = enable_bit | ((clock & 0b00000011) << 5) | high_offset;
@@ -346,7 +346,7 @@ void setOutputDACFreq(double freq, int board) {
 }
 
 void disableOutput(int clock, int board) { // clock is the clock on the FPGA corresponding to one of the transducers on the baord 0-87 for the original boards
-	setOffset(clock, 0, board, FALSE);
+	setOffset(clock, 0, board, false);
 }
 
 void loop() {
@@ -598,7 +598,7 @@ void loop() {
 	}
 
 	// Check if command is a disable or enable command
-	if (enable == FALSE) {
+	if (enable == false) {
 		disableOutput(transducer_number, board);
 	}
 	// If it is enable then check what type and do it
