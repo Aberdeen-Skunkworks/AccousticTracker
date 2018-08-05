@@ -207,46 +207,47 @@ void setOffset(byte clock, double offset, int board, bool enable = TRUE) {
 	//	Z = phase of first oscillation
 	//	C = Output enable bit
 	if (clock > 0b01111111) {
-		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Clock selected is too large!\"}\n");
+		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Transducer number selected is too large!\"}\n");
 	}
+	else {
+		int offset_int = 1250 * (offset / (2 * 3.14159265359));
 
-	int offset_int = 1250 * (offset / (2 * 3.14159265359));
+		int sign = 0;
+		offset_int = offset_int % 1250;
+		if (offset_int > 624) {
+			sign = 1;
+			offset_int = offset_int - 624;
+		}
 
-	int sign = 0;
-	offset_int = offset_int % 1250;
-	if (offset_int > 624) {
-		sign = 1;
-		offset_int = offset_int - 624;
+		// Place the first 7 bits of the offset into the low_offset byte
+		byte low_offset = offset_int & 0b01111111;
+
+		// Place the remaining 3 bits of the offset, plus the sign bit, into the high offset
+		byte high_offset = ((offset_int >> 7) & 0b00000111) + (sign << 3);
+
+		// The command byte has the command bit set, plus 5 bits of the clock select
+		byte b1 = 0b10000000 | (clock >> 2);
+
+		// The next bit has the output enable bit set high, plus the last two bits of the clock select, and the high offset bits
+		byte enable_bit = 0b00010000;
+		if (enable == FALSE) {
+			enable_bit = 0b00000000;
+		}
+		byte b2 = enable_bit | ((clock & 0b00000011) << 5) | high_offset;
+
+		// The last byte contains the low offset bits
+		byte b3 = low_offset;
+
+		// Set the command inot a byte array
+		byte bytearray[3];
+		bytearray[0] = b1;
+		bytearray[1] = b2;
+		bytearray[2] = b3;
+
+		sendCmd(bytearray, board);
+		loadOffsets(board);
 	}
-
-	// Place the first 7 bits of the offset into the low_offset byte
-	byte low_offset = offset_int & 0b01111111;
-
-	// Place the remaining 3 bits of the offset, plus the sign bit, into the high offset
-	byte high_offset = ((offset_int >> 7) & 0b00000111) + (sign << 3);
-
-	// The command byte has the command bit set, plus 5 bits of the clock select
-	byte b1 = 0b10000000 | (clock >> 2);
-
-	// The next bit has the output enable bit set high, plus the last two bits of the clock select, and the high offset bits
-	byte enable_bit = 0b00010000;
-	if (enable == FALSE) {
-		enable_bit = 0b00000000;
-	}
-	byte b2 = enable_bit | ((clock & 0b00000011) << 5) | high_offset;
-
-	// The last byte contains the low offset bits
-	byte b3 = low_offset;
-
-	// Set the command inot a byte array
-	byte bytearray[3];
-	bytearray[0] = b1;
-	bytearray[1] = b2;
-	bytearray[2] = b3;
-
-	sendCmd(bytearray, board);
 }
-
 
 int get_board_outputs(int board) {
 	byte bytearray[3];
@@ -306,13 +307,14 @@ void  setOutputDACPower(int power, int board) {
 	if (power > 256) { // Not a mistake!the DAC goes from 0 - 256, not 255!
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Power selected is too large!\"}\n");
 	}
+	else {
+		byte bytearray[3];
+		bytearray[0] = 0b11100000;
+		bytearray[1] = 0b00000011 & (power >> 7);
+		bytearray[2] = 0b01111111 & power;
 
-	byte bytearray[3];
-	bytearray[0] = 0b11100000;
-	bytearray[1] = 0b00000011 & (power >> 7);
-	bytearray[2] = 0b01111111 & power;
-
-	sendCmd(bytearray, board);
+		sendCmd(bytearray, board);
+	}
 }
 
 void setOutputDACDivisor(int divisor, int board) {
@@ -324,16 +326,17 @@ void setOutputDACDivisor(int divisor, int board) {
 	if (divisor > 0b1111111111111111111) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"DAC dicisor selected is too large!\"}\n");
 	}
-	if (divisor < 50) {
+	else if (divisor < 50) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"You'll burn out the board if the divisor is too low (<50).\"}\n");
 	}
+	else {
+		byte bytearray[3];
+		bytearray[0] = 0b10100000 | (0b00011111 & (divisor >> 14));
+		bytearray[1] = 0b01111111 & (divisor >> 7);
+		bytearray[2] = 0b01111111 & divisor;
 
-	byte bytearray[3];
-	bytearray[0] = 0b10100000 | (0b00011111 & (divisor >> 14));
-	bytearray[1] = 0b01111111 & (divisor >> 7);
-	bytearray[2] = 0b01111111 & divisor;
-
-	sendCmd(bytearray, board);
+		sendCmd(bytearray, board);
+	}
 }
 
 void setOutputDACFreq(double freq, int board) {
@@ -345,7 +348,6 @@ void setOutputDACFreq(double freq, int board) {
 void disableOutput(int clock, int board) { // clock is the clock on the FPGA corresponding to one of the transducers on the baord 0-87 for the original boards
 	setOffset(clock, 0, board, FALSE);
 }
-
 
 void loop() {
   //Try to parse the JSON commands coming in via the serial port
@@ -561,7 +563,7 @@ void loop() {
 	volatile bool enable = json_in_root["enable"];
 	volatile int board_outputs = 0;
 
-	// Check if the board number has been send and then whether or not the board has 88 outputs otherwise print errors back to the PC
+	// Check if the board number has been sent and then whether or not the board has 88 outputs otherwise print errors back to the PC
 	if (json_in_root["board"].success()) {
 		if (board == 1) {
 			board_outputs = get_board_outputs(1);
@@ -612,12 +614,9 @@ void loop() {
 	else if (json_in_root["freq"].success()) {
 		setOutputDACFreq(freq, board);
 	}
-	else {
-		
-	}
 
 	// Print out the success command
-	Serial.print("{\"Status\":\"Success\", \"Light up\":");
+	Serial.print("{\"Status\":\"Success\", \"Sent command to board sucsessfully\":");
 	Serial.print("}\n");
       break;
   }
@@ -631,9 +630,6 @@ default: {
 
 digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
 }
-
-
-
 
 void setup_dma() {
   //This sets up the DMA controllers to run the ADCs and transfer out the data

@@ -526,10 +526,6 @@ def create_board_command_freq(board, freq):
     return command
 
 
-
-
-
-
 def can_hear_transducer(listen_transducer, array_board, output_transducer):
     
     """
