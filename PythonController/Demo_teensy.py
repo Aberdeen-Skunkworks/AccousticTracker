@@ -25,6 +25,8 @@ ntrans = len(rt);
 
 print(" ")
 print("Control modes:")
+print("(o) = OFF")
+print("(s) = ON")
 print("(h) = Haptic")
 print("(p) = Pattern")
 print("(m) = Moving - Circles abvoe array (NOT WORKING)")
@@ -35,11 +37,38 @@ print("(GUI) = Graphical user interface mode")
 
 choose = input("Please choose a mode from above: ")
 
+## --------------------------- Turn off --------------------------- ##
+
+if choose == ("o"):
+    
+    from Controller import Controller
+    with Controller() as com:        
+        command_power = Functions.create_board_command_power(1, 0)
+        reply_power = com.send_json(command_power)
+        if reply_power["Status"] != "Success":
+            raise Exception("Failed to start conversion 2", reply_power)
+            
+            
+            
+## --------------------------- Turn off --------------------------- ##
+
+if choose == ("s"):
+    
+    from Controller import Controller
+    with Controller() as com:        
+        command_power = Functions.create_board_command_power(1, 256)
+        reply_power = com.send_json(command_power)
+        if reply_power["Status"] != "Success":
+            raise Exception("Failed to start conversion 2", reply_power)
 
 ## --------------------------- Haptic feedback --------------------------- ##
     
 if choose == ("h"):
     print ("Haptic mode selected")
+    
+    import wave
+    wav = wave.open("test.wav", 'r')
+    
     phase_index = np.zeros((ntrans),dtype=int)
     phi_focus = phase_algorithms.phase_find(rt,0,0,0.10)
     for transducer in range(0,ntrans):
@@ -49,16 +78,20 @@ if choose == ("h"):
     with Controller() as com:        
         for i in range(88):
             # Send offset commands
-            command = Functions.create_board_command_offset(1, i, phase_index[i])
+            command = Functions.create_board_command_offset(1, i, phi_focus[i], True)
             reply = com.send_json(command)
             if reply["Status"] != "Success":
-                raise Exception("Failed to start conversion", reply)
+                raise Exception("Failed to start conversion 1", reply)
                 
+        command_power = Functions.create_board_command_power(1, 128)
+        reply_power = com.send_json(command_power)
+        if reply_power["Status"] != "Success":
+            raise Exception("Failed to start conversion 2", reply_power)
         # Send Frequency command 
-        command_freq = Functions.create_board_command_freq(1, 200)
+        command_freq = Functions.create_board_command_freq(1, 130)
         reply_freq = com.send_json(command_freq)
-        if reply["Status"] != "Success":
-            raise Exception("Failed to start conversion", reply_freq)
+        if reply_freq["Status"] != "Success":
+            raise Exception("Failed to start conversion 2", reply_freq)
             
 
 ## -------------------------- Focused traps ------------------------------- ##  
@@ -215,28 +248,25 @@ elif choose == ("w"):
 
 elif choose == ("t"):
     
-    import wave, struct, numpy as np
-    
-    wav = wave.open("test.wav", 'r')
-    length = wav.getnframes()
-    data_whole = np.zeros(length)
-   
-    for i in range(0,length):
-        waveData = wav.readframes(1)
-        data = struct.unpack("<h", waveData)
-        data_whole[i] = int(data[0])
-        #print(int(data[0]))
-
-    def scale_range (array, low, high):
-        #array.astype("float")
-        array += -(np.min(array))
-        array /= np.max(array) / (high - low)
-        array += low
-        return array
-    
-    data_whole_scaled = scale_range (np.copy(data_whole), 0, 255)
-    data_whole_scaled_int = np.round(np.copy(data_whole_scaled), 0)
-    
+    import mido
+    from Controller import Controller
+    with Controller() as com:    
+        command_power = Functions.create_board_command_power(1, 128)
+        reply_power = com.send_json(command_power)
+        if reply_power["Status"] != "Success":
+            raise Exception("Failed to start conversion 2", reply_power)
+            
+        #song_file = mido.MidiFile('prelC.mid')
+        song_file = mido.MidiFile('for_elise_by_beethoven.mid')
+        
+        for msg in song_file:
+            time.sleep(msg.time)
+            if msg.type == 'note_on':
+                # Send Frequency command 
+                command_freq = Functions.create_board_command_freq(1, Functions.midi_to_hz(msg.note))
+                reply_freq = com.send_json(command_freq)
+                if reply_freq["Status"] != "Success":
+                    raise Exception("Failed to start conversion 2", reply_freq)
 # -------------------------------------------------------------------------- #
 
 elif choose == ("GUI"):

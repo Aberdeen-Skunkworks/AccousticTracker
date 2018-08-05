@@ -179,7 +179,7 @@ void sendCmd(byte bytearray[3], int board) {
 	}
 
 	// Print out the error message if the send command and the echo are different
-	if (FPGA_reply != bytearray) {
+	if (FPGA_reply[0] != bytearray[0] || FPGA_reply[1] != bytearray[1] || FPGA_reply[2] != bytearray[2]) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Recieved different reply from FPGA\", \"sent\":");
 		Serial.print(bytearray[0]);
 		Serial.print(bytearray[1]);
@@ -192,8 +192,15 @@ void sendCmd(byte bytearray[3], int board) {
 	}
 	// Otherwise Print out the success command
 	else {
-		Serial.print("{\"Status\":\"Success\", \"Sent and recieved the correct reply fromt the FPGA\":");
-		Serial.print("}\n");
+		//Serial.print("{\"Status\":\"Success\", \"Sent and recieved the correct reply fromt the FPGA\", \"sent \":");
+		//Serial.print(bytearray[0]);
+		//Serial.print(bytearray[1]);
+		//Serial.print(bytearray[2]);
+		/*Serial.print(", \"recieved \":");
+		Serial.print(FPGA_reply[0]);
+		Serial.print(FPGA_reply[1]);
+		Serial.print(FPGA_reply[2]);
+		Serial.print("}\n");*/
 	}
 }
 
@@ -271,7 +278,7 @@ int getVersion(int board) {
 	return getonewordreply(bytearray, board);
 }
 
-int loadOffsets(int board) {
+void loadOffsets(int board) {
 	byte bytearray[3];
 
 	// Send FPGA command to load the offsets 
@@ -279,13 +286,12 @@ int loadOffsets(int board) {
 	bytearray[1] = 0b00000000;
 	bytearray[2] = 0b00000000;
 
-	return getonewordreply(bytearray, board);
+	sendCmd(bytearray, board);
 }
 
 int getonewordreply(byte bytearray[3], int board) {
 	// Define the reply data type
 	int FPGA_reply;
-
 	// Send the command to the FPGA and read the reply byte
 	sendCmd(bytearray, board);
 	FPGA_reply = HWSERIAL_1.read();
@@ -598,7 +604,7 @@ void loop() {
 	}
 
 	// Check if command is a disable or enable command
-	if (enable == false) {
+	if (json_in_root["enable"].success() && enable == false) {
 		disableOutput(transducer_number, board);
 	}
 	// If it is enable then check what type and do it
@@ -616,8 +622,7 @@ void loop() {
 	}
 
 	// Print out the success command
-	Serial.print("{\"Status\":\"Success\", \"Sent command to board sucsessfully\":");
-	Serial.print("}\n");
+	Serial.print("{\"Status\":\"Success\", \"message\":\"Sent command to board sucsessfully\"}\n");
       break;
   }
 

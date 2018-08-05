@@ -510,6 +510,10 @@ def create_board_command_offset(board, transducer_number, offset, enable = True)
     command = {"CMD":7, "board":board, "transducer_number":transducer_number, "offset":offset, "enable":enable}
     return command
 
+def create_board_command_off(board, transducer_number, enable = False):
+    command = {"CMD":7, "board":board, "transducer_number":transducer_number, "enable":enable}
+    return command
+
 def create_board_command_power(board, power):
     # Power is a number between 1 and 256: #Not a mistake! the DAC goes from 0-256, not 255! which controlls the boards overall modulation 128 would be a 50% duty
     command = {"CMD":7, "board":board, "power":power}
@@ -558,8 +562,8 @@ def turn_on_board_transducer(board, output_transducer):
 
 
 
-
-
+def midi_to_hz(midi_number):
+    return (27.5 * 2**((midi_number - 21)/12))
 
 
 

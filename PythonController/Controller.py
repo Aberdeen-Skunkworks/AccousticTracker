@@ -33,7 +33,6 @@ class Controller():
         reply = self.com.readline()
         while reply == b"":
             reply = self.com.readline()
-            
         try:
             json_reply = json.loads(reply)
             if "Status" not in json_reply:
