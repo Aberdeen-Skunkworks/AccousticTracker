@@ -26,7 +26,7 @@ ntrans = len(rt);
 print(" ")
 print("Control modes:")
 print("(o) = OFF")
-print("(s) = ON")
+print("(n) = ON")
 print("(h) = Haptic")
 print("(p) = Pattern")
 print("(m) = Moving - Circles abvoe array (NOT WORKING)")
@@ -48,11 +48,9 @@ if choose == ("o"):
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
             
-            
-            
-## --------------------------- Turn off --------------------------- ##
+## --------------------------- Turn On --------------------------- ##
 
-if choose == ("s"):
+if choose == ("n"):
     
     from Controller import Controller
     with Controller() as com:        
@@ -65,12 +63,9 @@ if choose == ("s"):
     
 if choose == ("h"):
     print ("Haptic mode selected")
-    
-    import wave
-    wav = wave.open("test.wav", 'r')
-    
+       
     phase_index = np.zeros((ntrans),dtype=int)
-    phi_focus = phase_algorithms.phase_find(rt,0,0,0.10)
+    phi_focus = phase_algorithms.phase_find(rt,0,0,0.1)
     for transducer in range(0,ntrans):
         phase_index[transducer] = int(2500-phi_focus[transducer]/((2*math.pi)/1250))
         
@@ -78,17 +73,25 @@ if choose == ("h"):
     with Controller() as com:        
         for i in range(88):
             # Send offset commands
-            command = Functions.create_board_command_offset(1, i, phi_focus[i], True)
+            command = Functions.create_board_command_offset(1, i, 0, True)
             reply = com.send_json(command)
             if reply["Status"] != "Success":
                 raise Exception("Failed to start conversion 1", reply)
                 
+        # Send load offset command
+        command = Functions.create_board_command_load_offsets(1)
+        reply = com.send_json(command)
+        if reply["Status"] != "Success":
+            raise Exception("Failed to start conversion 1", reply)
+        
+        # Send Power setting command
         command_power = Functions.create_board_command_power(1, 128)
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
+            
         # Send Frequency command 
-        command_freq = Functions.create_board_command_freq(1, 130)
+        command_freq = Functions.create_board_command_freq(1, 200)
         reply_freq = com.send_json(command_freq)
         if reply_freq["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_freq)
@@ -107,9 +110,10 @@ elif choose == ("p"):
     for transducer in range(0,ntrans):
         phase_index[transducer] = int(2500-phi[transducer]/((2*math.pi)/1250))
         
-    from connect import Controller 
-    with Controller() as ctl:
+    from Controller import Controller
+    with Controller() as com:  
         
+         # Send Power setting command
         command_power = Functions.create_board_command_power(1, 256)
         reply_power = com.send_json(command_power)
         if reply["Status"] != "Success":
@@ -117,12 +121,17 @@ elif choose == ("p"):
             
         for i in range(88):
             # Send offset commands
-            command = Functions.create_board_command_offset(1, i, phase_index[i])
+            command = Functions.create_board_command_offset(1, i, phi[i])
             reply = com.send_json(command)
             if reply["Status"] != "Success":
                 raise Exception("Failed to start conversion", reply)
-
-# -------------------------------------------------------------------------- #
+                
+        # Send load offset command
+        command = Functions.create_board_command_load_offsets(1)
+        reply = com.send_json(command)
+        if reply["Status"] != "Success":
+            raise Exception("Failed to start conversion 1", reply)
+        
 
 
 
@@ -250,7 +259,21 @@ elif choose == ("t"):
     
     import mido
     from Controller import Controller
-    with Controller() as com:    
+    with Controller() as com:  
+        for i in range(88):
+            # Send offset commands
+            command = Functions.create_board_command_offset(1, i, phi_focus[i], True)
+            reply = com.send_json(command)
+            if reply["Status"] != "Success":
+                raise Exception("Failed to start conversion 1", reply)
+                
+        # Send load offset command
+        command = Functions.create_board_command_load_offsets(1)
+        reply = com.send_json(command)
+        if reply["Status"] != "Success":
+            raise Exception("Failed to start conversion 1", reply)
+        
+        # Send power command
         command_power = Functions.create_board_command_power(1, 128)
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
@@ -262,11 +285,29 @@ elif choose == ("t"):
         for msg in song_file:
             time.sleep(msg.time)
             if msg.type == 'note_on':
+                
+                # Send power command
+                command_power = Functions.create_board_command_power(1, 128)
+                reply_power = com.send_json(command_power)
+                if reply_power["Status"] != "Success":
+                    raise Exception("Failed to start conversion 2", reply_power)
+                    
                 # Send Frequency command 
                 command_freq = Functions.create_board_command_freq(1, Functions.midi_to_hz(msg.note))
                 reply_freq = com.send_json(command_freq)
                 if reply_freq["Status"] != "Success":
                     raise Exception("Failed to start conversion 2", reply_freq)
+                    
+            if msg.type == 'note_off':
+                # Send power command
+                command_power = Functions.create_board_command_power(1, 0)
+                reply_power = com.send_json(command_power)
+                if reply_power["Status"] != "Success":
+                    raise Exception("Failed to start conversion 2", reply_power)
+                
+                
+                
+                
 # -------------------------------------------------------------------------- #
 
 elif choose == ("GUI"):

@@ -41,6 +41,9 @@ DMAChannel* dma1 = new DMAChannel(false);
 DMAChannel* dma2 = new DMAChannel(false);
 DMAChannel* dma3 = new DMAChannel(false);
 
+// Set a bool for the transducer communication functions to set to false if they detect an error.
+volatile bool baord_error = false;
+
 //Shortcut for the LED pin
 const int ledPin = 13;
 
@@ -164,7 +167,7 @@ void sendCmd(byte bytearray[3], int board) {
 	digitalWrite(27, LOW);
 
 	// Delay to allow FPGA to reply
-	delay(1);
+	delayMicroseconds(125);
 
 	// Read in the reply one byte at a time
 	if (board == 1) {
@@ -189,6 +192,7 @@ void sendCmd(byte bytearray[3], int board) {
 		Serial.print(FPGA_reply[1]);
 		Serial.print(FPGA_reply[2]);
 		Serial.print("}\n");
+		baord_error = true;
 	}
 	// Otherwise Print out the success command
 	else {
@@ -215,6 +219,7 @@ void setOffset(byte clock, double offset, int board, bool enable = true) {
 	//	C = Output enable bit
 	if (clock > 0b01111111) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Transducer number selected is too large!\"}\n");
+		baord_error = true;
 	}
 	else {
 		int offset_int = 1250 * (offset / (2 * 3.14159265359));
@@ -252,7 +257,6 @@ void setOffset(byte clock, double offset, int board, bool enable = true) {
 		bytearray[2] = b3;
 
 		sendCmd(bytearray, board);
-		loadOffsets(board);
 	}
 }
 
@@ -299,6 +303,7 @@ int getonewordreply(byte bytearray[3], int board) {
 	// Check if a byte is recieved (If not serial.read returns a -1)
 	if (FPGA_reply == -1) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Never recieved a reply from the FPGA\"}\n");
+		baord_error = true;
 	}
 	// Retuen the FPGA reply
 	return FPGA_reply;
@@ -312,6 +317,7 @@ void  setOutputDACPower(int power, int board) {
 	// Y = 7 bit DAC value
 	if (power > 256) { // Not a mistake!the DAC goes from 0 - 256, not 255!
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Power selected is too large!\"}\n");
+		baord_error = true;
 	}
 	else {
 		byte bytearray[3];
@@ -331,9 +337,11 @@ void setOutputDACDivisor(int divisor, int board) {
 	//	Y = 19 bit DAC value
 	if (divisor > 0b1111111111111111111) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"DAC dicisor selected is too large!\"}\n");
+		baord_error = true;
 	}
 	else if (divisor < 50) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"You'll burn out the board if the divisor is too low (<50).\"}\n");
+		baord_error = true;
 	}
 	else {
 		byte bytearray[3];
@@ -567,6 +575,7 @@ void loop() {
 	volatile int divisor = json_in_root["divisor"];
 	volatile double freq = json_in_root["freq"];
 	volatile bool enable = json_in_root["enable"];
+	volatile bool load_offsets = json_in_root["load_offsets"];
 	volatile int board_outputs = 0;
 
 	// Check if the board number has been sent and then whether or not the board has 88 outputs otherwise print errors back to the PC
@@ -603,27 +612,41 @@ void loop() {
 		}
 	}
 
+	// Check if command is a load offset command
+	if (json_in_root["load_offsets"].success() && load_offsets == true) {
+		loadOffsets(board);
+	}
+
 	// Check if command is a disable or enable command
 	if (json_in_root["enable"].success() && enable == false) {
 		disableOutput(transducer_number, board);
 	}
+
 	// If it is enable then check what type and do it
-	else if (json_in_root["transducer_number"].success() && json_in_root["offset"].success() && json_in_root["board"].success()) {
+	if (json_in_root["transducer_number"].success() && json_in_root["offset"].success() && json_in_root["board"].success()) {
 		setOffset(transducer_number, offset, board);
 	}
-	else if (json_in_root["power"].success()) {
+	if (json_in_root["power"].success()) {
 		setOutputDACPower(power, board);
 	}
-	else if (json_in_root["divisor"].success()) {
+	if (json_in_root["divisor"].success()) {
 		setOutputDACDivisor(divisor, board);
 	}
-	else if (json_in_root["freq"].success()) {
+	if (json_in_root["freq"].success()) {
 		setOutputDACFreq(freq, board);
 	}
 
-	// Print out the success command
-	Serial.print("{\"Status\":\"Success\", \"message\":\"Sent command to board sucsessfully\"}\n");
-      break;
+	if (baord_error == false) {
+		// Print out the success command
+		Serial.print("{\"Status\":\"Success\", \"message\":\"Sent command(s) to board sucsessfully\"}\n");
+		break;
+	}
+	else {
+		// Print out the fail command
+		Serial.print("{\"Status\":\"Fail\", \"message\":\"Board error detected see specific error message\"}\n");
+		break;
+	}
+
   }
 
 

@@ -529,6 +529,11 @@ def create_board_command_freq(board, freq):
     command = {"CMD":7, "board":board, "freq":freq}
     return command
 
+def create_board_command_load_offsets(board):
+    # Frequency uses the divisor to modulate the board at the typed frequency in HZ 
+    command = {"CMD":7, "board":board, "load_offsets":True}
+    return command
+
 
 def can_hear_transducer(listen_transducer, array_board, output_transducer):
     
