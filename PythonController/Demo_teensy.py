@@ -23,6 +23,8 @@ ntrans = len(rt);
 #plt.plot(x, y,'ro'); plt.show() # Show Plot of the positions
 # -------------------------------------------------------------------------- #p
 
+board = input("Please choose a Board 1 or 2: ")
+
 print(" ")
 print("Control modes:")
 print("(o) = OFF")
@@ -36,14 +38,13 @@ print("(t) = Start on sound mode (NOT WORKING)")
 print("(GUI) = Graphical user interface mode")
 
 choose = input("Please choose a mode from above: ")
-
 ## --------------------------- Turn off --------------------------- ##
 
 if choose == ("o"):
     
     from Controller import Controller
     with Controller() as com:        
-        command_power = Functions.create_board_command_power(1, 0)
+        command_power = Functions.create_board_command_power(board, 0)
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
@@ -54,44 +55,43 @@ if choose == ("n"):
     
     from Controller import Controller
     with Controller() as com:        
-        command_power = Functions.create_board_command_power(1, 256)
+        command_power = Functions.create_board_command_power(board, 256)
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
 
 ## --------------------------- Haptic feedback --------------------------- ##
     
+
+
 if choose == ("h"):
     print ("Haptic mode selected")
        
-    phase_index = np.zeros((ntrans),dtype=int)
     phi_focus = phase_algorithms.phase_find(rt,0,0,0.1)
-    for transducer in range(0,ntrans):
-        phase_index[transducer] = int(2500-phi_focus[transducer]/((2*math.pi)/1250))
-        
+
     from Controller import Controller
     with Controller() as com:        
         for i in range(88):
             # Send offset commands
-            command = Functions.create_board_command_offset(1, i, 0, True)
+            command = Functions.create_board_command_offset(board, i, phi_focus[i], True)
             reply = com.send_json(command)
             if reply["Status"] != "Success":
                 raise Exception("Failed to start conversion 1", reply)
                 
         # Send load offset command
-        command = Functions.create_board_command_load_offsets(1)
+        command = Functions.create_board_command_load_offsets(board)
         reply = com.send_json(command)
         if reply["Status"] != "Success":
             raise Exception("Failed to start conversion 1", reply)
         
         # Send Power setting command
-        command_power = Functions.create_board_command_power(1, 128)
+        command_power = Functions.create_board_command_power(board, 128)
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
             
         # Send Frequency command 
-        command_freq = Functions.create_board_command_freq(1, 200)
+        command_freq = Functions.create_board_command_freq(board, 80000)
         reply_freq = com.send_json(command_freq)
         if reply_freq["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_freq)
@@ -105,29 +105,25 @@ elif choose == ("p"):
 
     phi_focus = phase_algorithms.phase_find(rt,0,0,0.018)
     phi = phase_algorithms.add_twin_signature(rt, phi_focus, 0)
-    phase_index = np.zeros((ntrans),dtype=int)
 
-    for transducer in range(0,ntrans):
-        phase_index[transducer] = int(2500-phi[transducer]/((2*math.pi)/1250))
-        
     from Controller import Controller
     with Controller() as com:  
         
          # Send Power setting command
-        command_power = Functions.create_board_command_power(1, 256)
+        command_power = Functions.create_board_command_power(board, 256)
         reply_power = com.send_json(command_power)
         if reply["Status"] != "Success":
-            raise Exception("Failed to start conversion", reply_freq)
+            raise Exception("Failed to start conversion", reply_power)
             
         for i in range(88):
             # Send offset commands
-            command = Functions.create_board_command_offset(1, i, phi[i])
+            command = Functions.create_board_command_offset(board, i, phi[i])
             reply = com.send_json(command)
             if reply["Status"] != "Success":
                 raise Exception("Failed to start conversion", reply)
                 
         # Send load offset command
-        command = Functions.create_board_command_load_offsets(1)
+        command = Functions.create_board_command_load_offsets(board)
         reply = com.send_json(command)
         if reply["Status"] != "Success":
             raise Exception("Failed to start conversion 1", reply)
@@ -185,6 +181,57 @@ elif choose == ("m"):
                     ctl.setOffset(i,phase_index[i][point])
                 ctl.loadOffsets()
                 
+                
+## -------------------------- Moving traps ------------------------------- ##
+
+elif choose == ("hm"):
+    print ("Haptic move mode selected")
+    
+    circle_co_ords = algorithms.circle_co_ords(10, 0.02)
+    #line_coordinates = np.linspace(0,2,100)
+    
+    
+    phi_focus = np.zeros([ntrans,len(circle_co_ords[0])])
+    phi =  np.zeros([ntrans,len(circle_co_ords[0])])
+    phase_index = np.zeros(([ntrans,len(circle_co_ords[0])]),dtype=int)
+    
+
+    for point in range (0,len(circle_co_ords[0])):
+        
+        phi_focus_all = phase_algorithms.phase_find(rt,circle_co_ords[0][point], circle_co_ords[1][point], 0.05) # phi is the initial phase of each transducer to focus on a point
+        for transducer in range(0,ntrans):
+            phi_focus[transducer][point] = phi_focus_all[transducer]
+
+    from Controller import Controller
+    with Controller() as com:    
+            # Send Power setting command
+            command_power = Functions.create_board_command_power(board, 128)
+            reply_power = com.send_json(command_power)
+            if reply_power["Status"] != "Success":
+                raise Exception("Failed to start conversion 2", reply_power)
+                
+            # Send Frequency command 
+            command_freq = Functions.create_board_command_freq(board, 200)
+            reply_freq = com.send_json(command_freq)
+            if reply_freq["Status"] != "Success":
+                raise Exception("Failed to start conversion 2", reply_freq)
+                    
+            while True:
+                for point in range (0,len(circle_co_ords[0])):
+                    for i in range(88):
+                        # Send offset commands
+                        command = Functions.create_board_command_offset(board, i, phi_focus[i][point], True)
+                        reply = com.send_json(command)
+                        if reply["Status"] != "Success":
+                            raise Exception("Failed to start conversion 1", reply)
+                            
+                    # Send load offset command
+                    command = Functions.create_board_command_load_offsets(board)
+                    reply = com.send_json(command)
+                    if reply["Status"] != "Success":
+                        raise Exception("Failed to start conversion 1", reply)
+            
+
 # -------------------------------------------------------------------------- #
 
 elif choose == ("two"):
@@ -260,21 +307,24 @@ elif choose == ("t"):
     import mido
     from Controller import Controller
     with Controller() as com:  
+        
+        phi_focus = phase_algorithms.phase_find(rt,0,0,0.07)
+        
         for i in range(88):
             # Send offset commands
-            command = Functions.create_board_command_offset(1, i, phi_focus[i], True)
+            command = Functions.create_board_command_offset(board, i, 0, True)
             reply = com.send_json(command)
             if reply["Status"] != "Success":
                 raise Exception("Failed to start conversion 1", reply)
                 
         # Send load offset command
-        command = Functions.create_board_command_load_offsets(1)
+        command = Functions.create_board_command_load_offsets(board)
         reply = com.send_json(command)
         if reply["Status"] != "Success":
             raise Exception("Failed to start conversion 1", reply)
         
         # Send power command
-        command_power = Functions.create_board_command_power(1, 128)
+        command_power = Functions.create_board_command_power(board, 20)
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
@@ -287,20 +337,20 @@ elif choose == ("t"):
             if msg.type == 'note_on':
                 
                 # Send power command
-                command_power = Functions.create_board_command_power(1, 128)
+                command_power = Functions.create_board_command_power(board, 20)
                 reply_power = com.send_json(command_power)
                 if reply_power["Status"] != "Success":
                     raise Exception("Failed to start conversion 2", reply_power)
                     
                 # Send Frequency command 
-                command_freq = Functions.create_board_command_freq(1, Functions.midi_to_hz(msg.note))
+                command_freq = Functions.create_board_command_freq(board, Functions.midi_to_hz(msg.note))
                 reply_freq = com.send_json(command_freq)
                 if reply_freq["Status"] != "Success":
                     raise Exception("Failed to start conversion 2", reply_freq)
                     
             if msg.type == 'note_off':
                 # Send power command
-                command_power = Functions.create_board_command_power(1, 0)
+                command_power = Functions.create_board_command_power(board, 0)
                 reply_power = com.send_json(command_power)
                 if reply_power["Status"] != "Success":
                     raise Exception("Failed to start conversion 2", reply_power)

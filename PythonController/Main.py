@@ -34,7 +34,7 @@ from Functions import find_samples_per_wave
 # Define Constatns
 samples_per_wave, time_per_sample = find_samples_per_wave()
 
-teensy_cpu_speed_hz = 180000000 # CPU speed of the teensy board CHECK THIS! very important
+teensy_cpu_speed_hz =   168000000 # CPU speed of the teensy board CHECK THIS! very important
 delays_to_get_to_end_of_sample = (time_per_sample*512*1000)/((1/teensy_cpu_speed_hz)*4*10**9) # 512 samples 1000 to convert to nanoseconds then the bottom of the fraction is the time for 4 cpu cycles
 delays_per_sample = time_per_sample/((1/teensy_cpu_speed_hz)*4*10**6)
 adc_resolution = 12             # ADC resolution in bits
@@ -74,7 +74,7 @@ if choose == ("1"):
     target_square_wave = square_wave_gen(PWMwidth, resolution, samples_per_wave)[1]
     
     with Controller() as com:
-        command, recieved_wave_adc0_or_adc1 = create_read_command(4,5,PWMwidth,repetitions) # Read transducer, ping transducer
+        command, recieved_wave_adc0_or_adc1 = create_read_command(1,5,PWMwidth,repetitions) # Read transducer, ping transducer
         while True:
             # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
             output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays, time_per_sample, teensy_cpu_speed_hz)
@@ -109,9 +109,9 @@ if choose == ("1"):
             correlation_signal_times = []
             for i in range(len(correlation_signal)):
                 correlation_signal_times.append(times_x_axis_sorted[i])
-            li[2].set_ydata(correlation_signal)
-            li[2].set_xdata(correlation_signal_times)
-            li[2].set_label("Correlation Fuction")
+            #li[2].set_ydata(correlation_signal)
+            #li[2].set_xdata(correlation_signal_times)
+            #li[2].set_label("Correlation Fuction")
             
             # Calculate the distance to the transducer, knowing that sample rate is 12 per 40kHz wave and assuming speed of sound in air is 343 m/s
             time_to_first_echo = times_x_axis_sorted[sample_number_of_echo]/1000000

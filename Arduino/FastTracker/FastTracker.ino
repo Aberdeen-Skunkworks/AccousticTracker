@@ -8,8 +8,8 @@
 #define HWSERIAL_1 Serial5
 #define HWSERIAL_2 Serial4
 
-#define ADC_conv_speed ADC_CONVERSION_SPEED::MED_SPEED    //VERY_HIGH_SPEED
-#define ADC_samp_speed ADC_SAMPLING_SPEED::MED_SPEED
+#define ADC_conv_speed ADC_CONVERSION_SPEED::LOW_SPEED    //VERY_HIGH_SPEED
+#define ADC_samp_speed ADC_SAMPLING_SPEED::VERY_HIGH_SPEED
 
 // Temperature reading digital pin number
 #define ONE_WIRE_BUS 14
@@ -123,19 +123,27 @@ void pwm_isr(void) {
     pwm_timer.end();
   }
 }
-
+volatile int dma0_repeats = 0;
+volatile int dma2_repeats = 0;
 //This callback is called whenever a DMA channel has completed all BUF_SIZE reads from its ADC. It resets the DMA controller back to the start clears the interrupt.
 void dma0_isr(void) {
   dma0->clearInterrupt();
   dma0->TCD->DADDR = &adcbuffer_0[0];
   //Uncomment below if you want the ADC to continuously sample the pin.
-  //dma0->enable();
+  if (dma0_repeats > 0) {
+	  dma0->enable();
+	  --dma0_repeats;
+  }
 }
 
 //Exactly the same as dma0_isr
 void dma2_isr(void) {
   dma2->clearInterrupt();
   dma2->TCD->DADDR = &adcbuffer_1[0];
+  if (dma2_repeats > 0) {
+	  dma2->enable();
+	  --dma2_repeats;
+  }
 }
 
 void sendCmd(byte bytearray[3], int board) {
@@ -167,7 +175,7 @@ void sendCmd(byte bytearray[3], int board) {
 	digitalWrite(27, LOW);
 
 	// Delay to allow FPGA to reply
-	delayMicroseconds(125);
+	delayMicroseconds(150);
 
 	// Read in the reply one byte at a time
 	if (board == 1) {
@@ -222,7 +230,7 @@ void setOffset(byte clock, double offset, int board, bool enable = true) {
 		baord_error = true;
 	}
 	else {
-		int offset_int = 1250 * (offset / (2 * 3.14159265359));
+		int offset_int = (2500 - 1250 * (offset / (2 * 3.14159265359)));
 
 		int sign = 0;
 		offset_int = offset_int % 1250;
@@ -298,8 +306,13 @@ int getonewordreply(byte bytearray[3], int board) {
 	int FPGA_reply;
 	// Send the command to the FPGA and read the reply byte
 	sendCmd(bytearray, board);
-	FPGA_reply = HWSERIAL_1.read();
-
+	
+	if (board == 1) {
+		FPGA_reply = HWSERIAL_1.read();
+	}
+	else if (board == 2) {
+		FPGA_reply = HWSERIAL_2.read();
+	}
 	// Check if a byte is recieved (If not serial.read returns a -1)
 	if (FPGA_reply == -1) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Never recieved a reply from the FPGA\"}\n");
@@ -354,7 +367,7 @@ void setOutputDACDivisor(int divisor, int board) {
 }
 
 void setOutputDACFreq(double freq, int board) {
-	setOutputDACPower(128, board); // 50 % duty cycle, turns the board off and on for equal amounts of time
+	//setOutputDACPower(128, board); // 50 % duty cycle, turns the board off and on for equal amounts of time
 	int divisor_int = (5e7 / (4 * freq) + 1);
 	setOutputDACDivisor(divisor_int, board);
 }
@@ -363,7 +376,17 @@ void disableOutput(int clock, int board) { // clock is the clock on the FPGA cor
 	setOffset(clock, 0, board, false);
 }
 
+
+elapsedMicros sync_timer;
 void loop() {
+
+	if (sync_timer > 1000) {
+		sync_timer = 0;
+		digitalWrite(35, HIGH);
+		delayMicroseconds(5);
+		digitalWrite(35, LOW);
+	}
+
   //Try to parse the JSON commands coming in via the serial port
   DynamicJsonBuffer jsonBuffer;
   JsonObject& json_in_root = jsonBuffer.parseObject(Serial, 2);
@@ -571,7 +594,6 @@ void loop() {
 	volatile int board = json_in_root["board"];
 	volatile int transducer_number = json_in_root["transducer_number"];
 	volatile double offset = json_in_root["offset"];
-	volatile int power = json_in_root["power"];
 	volatile int divisor = json_in_root["divisor"];
 	volatile double freq = json_in_root["freq"];
 	volatile bool enable = json_in_root["enable"];
@@ -627,6 +649,7 @@ void loop() {
 		setOffset(transducer_number, offset, board);
 	}
 	if (json_in_root["power"].success()) {
+		const int power = json_in_root["power"];
 		setOutputDACPower(power, board);
 	}
 	if (json_in_root["divisor"].success()) {
@@ -644,6 +667,7 @@ void loop() {
 	else {
 		// Print out the fail command
 		Serial.print("{\"Status\":\"Fail\", \"message\":\"Board error detected see specific error message\"}\n");
+		baord_error = false;
 		break;
 	}
 
