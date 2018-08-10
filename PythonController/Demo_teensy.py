@@ -33,7 +33,7 @@ print("(h) = Haptic")
 print("(p) = Pattern")
 print("(m) = Moving - Circles abvoe array (NOT WORKING)")
 print("(two) = Two boards, Needs work for both boards at once")
-print("(w) = Frequency mode not really required anymore")
+print("(music) = Music mode")
 print("(t) = Start on sound mode (NOT WORKING)")
 print("(GUI) = Graphical user interface mode")
 
@@ -300,6 +300,32 @@ elif choose == ("w"):
                 ctl.setOutputDACPower(255)
             counter = counter + 1
             
+# -------------------------------------------------------------------------- #
+
+
+elif choose == ("music"):
+    
+    import wave, struct, numpy as np
+    from scipy.io import wavfile
+    from Controller import Controller
+    
+    
+    fs, data = wavfile.read('8bit.wav')
+    size = len(data)
+    
+    data_bytes = bytearray(data)
+    command = Functions.create_board_command_wav(board, fs, size)
+    
+    with Controller() as com:  
+        # Send command
+        reply = com.send_json(command)
+        com.com.write(data_bytes)
+        print("done sending")
+            
+        if reply["Status"] != "Success":
+            raise Exception("Failed to send song", reply)
+            
+    
 # -------------------------------------------------------------------------- #
 
 elif choose == ("t"):

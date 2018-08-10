@@ -672,7 +672,47 @@ void loop() {
 	}
 
   }
+	case 8: {
+		// Read in the music file then play it
 
+		const int board = json_in_root["board"];
+		const int sample_rate = json_in_root["sample_rate"];
+		const int size = json_in_root["size"];
+
+		byte* power = new byte[size];
+
+		int counter = 0;
+		Serial.clear();
+
+		while (counter < size) {
+			uint8_t value = Serial.read();
+			if (value != -1) {
+				power[counter] = value;
+				counter++;
+				Serial.println(value);
+			}
+		}
+
+		setOutputDACFreq(80000, board);
+
+		for (int i = 0; i < 88; i++) {
+			setOffset(i, 0, board, true);
+		}
+		
+		for (int i = 0; i < size; i++) {
+			//int read_byte = Serial.read();
+
+			setOutputDACPower(power[i], board);
+	
+		}
+
+		delete[] power;
+
+		Serial.print("{\"Status\":\"Success\"");
+		Serial.print("}\n");
+		
+		break;
+	}
 
 default: {
     Serial.print("{\"Status\":\"Fail\", \"Error\":\"Unrecognised command\"}\n");
