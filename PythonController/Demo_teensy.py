@@ -309,21 +309,71 @@ elif choose == ("music"):
     from scipy.io import wavfile
     from Controller import Controller
     
-    
+
+    startMarker = 255
+    endMarker = 254
     fs, data = wavfile.read('8bit.wav')
+    #fs, data = wavfile.read('8bit10sec.wav')
+    
     size = len(data)
     
+    data_bytes = bytearray(data)
+    command = Functions.create_board_command_wav(board, fs, size)
+    
+    for i in range(size):
+        if data[i] == 255 or data[i] == 254:
+            data[i] = 253
+            
+    print("Finished reading wav from file")
+    
+    with Controller() as com:  
+        # Send command
+        reply = com.send_json(command)
+        
+        com.com.write(bytes([startMarker]))
+        com.com.write(data_bytes)
+        com.com.write(bytes([endMarker]))
+        
+        print("done sending")
+            
+        if reply["Status"] != "Success":
+            raise Exception("Failed to send song", reply)
+            
+elif choose == ("test"):
+    
+    import wave, struct, numpy as np
+    from scipy.io import wavfile
+    from Controller import Controller
+    
+    data = np.linspace(0,253, 160000, dtype = int)
+    data = data.tolist()
+    #data = [1,2,3,4,5,6,1,2,3,4,5,6,1,2,3,4,5,6,1,2,3,4,5,6,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,34,125]
+    
+    fs = 12000
+    size = len(data)
+    startMarker = 255
+    endMarker = 254
+    
+    
+    for i in range(size):
+        if data[i] == 255 or data[i] == 254:
+            data[i] = 253
+            
+            
     data_bytes = bytearray(data)
     command = Functions.create_board_command_wav(board, fs, size)
     
     with Controller() as com:  
         # Send command
         reply = com.send_json(command)
-        com.com.write(data_bytes)
-        print("done sending")
-            
         if reply["Status"] != "Success":
             raise Exception("Failed to send song", reply)
+                
+        com.com.write(bytes([startMarker]))
+        com.com.write(data_bytes)
+        com.com.write(bytes([endMarker]))
+
+
             
     
 # -------------------------------------------------------------------------- #
@@ -350,7 +400,7 @@ elif choose == ("t"):
             raise Exception("Failed to start conversion 1", reply)
         
         # Send power command
-        command_power = Functions.create_board_command_power(board, 20)
+        command_power = Functions.create_board_command_power(board, 128)
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
@@ -363,7 +413,7 @@ elif choose == ("t"):
             if msg.type == 'note_on':
                 
                 # Send power command
-                command_power = Functions.create_board_command_power(board, 20)
+                command_power = Functions.create_board_command_power(board, 128)
                 reply_power = com.send_json(command_power)
                 if reply_power["Status"] != "Success":
                     raise Exception("Failed to start conversion 2", reply_power)

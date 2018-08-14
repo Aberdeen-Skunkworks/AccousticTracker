@@ -377,6 +377,7 @@ void disableOutput(int clock, int board) { // clock is the clock on the FPGA cor
 }
 
 
+
 elapsedMicros sync_timer;
 void loop() {
 
@@ -674,42 +675,81 @@ void loop() {
   }
 	case 8: {
 		// Read in the music file then play it
-
+		boolean newData = false;
 		const int board = json_in_root["board"];
 		const int sample_rate = json_in_root["sample_rate"];
 		const int size = json_in_root["size"];
-
 		byte* power = new byte[size];
+		elapsedMillis timeout;
 
-		int counter = 0;
-		Serial.clear();
+		Serial.print("{\"Status\":\"Success\"");
+		Serial.print("}\n");
 
-		while (counter < size) {
-			uint8_t value = Serial.read();
-			if (value != -1) {
-				power[counter] = value;
-				counter++;
-				Serial.println(value);
+		/*while (newData == false && timeout < 3000) {
+
+			static boolean recvInProgress = false;
+			static byte ndx = 0;
+			int startMarker = 255;
+			int endMarker = 254;
+			int rc;
+
+			while (Serial.available() > 0 && newData == false) {
+				rc = Serial.read();
+				if (recvInProgress == true) {
+					if (rc != endMarker) {
+						power[ndx] = rc;
+						ndx++;
+						if (ndx >= size) {
+							recvInProgress = false;
+							ndx = 0;
+							newData = true;
+						}
+					}
+					else {
+						recvInProgress = false;
+						ndx = 0;
+						newData = true;
+					}
+				}
+
+				else if (rc == startMarker) {
+					recvInProgress = true;
+				}
 			}
 		}
-
-		setOutputDACFreq(80000, board);
+		*/
+		
+		setOutputDACFreq(76923, board);
 
 		for (int i = 0; i < 88; i++) {
 			setOffset(i, 0, board, true);
 		}
 		
 		for (int i = 0; i < size; i++) {
-			//int read_byte = Serial.read();
+			byte power = Serial.read();
+			if (power > 256) { // Not a mistake!the DAC goes from 0 - 256, not 255!
+				Serial.print("{\"Status\":\"Fail\", \"Error\":\"Power selected is too large!\"}\n");
+				baord_error = true;
+			}
+			else {
+				byte bytearray[3];
+				bytearray[0] = 0b11100000;
+				bytearray[1] = 0b00000011 & (power >> 7);
+				bytearray[2] = 0b01111111 & power;
 
-			setOutputDACPower(power[i], board);
-	
+				if (board == 1) {
+					HWSERIAL_1.write(bytearray, 3);
+				}
+				else if (board == 2) {
+					HWSERIAL_2.write(bytearray, 3);
+				}
+			}
+
 		}
 
 		delete[] power;
 
-		Serial.print("{\"Status\":\"Success\"");
-		Serial.print("}\n");
+		
 		
 		break;
 	}

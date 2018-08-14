@@ -70,11 +70,14 @@ if choose == ("1"):
     ax = plt.gca()
     li = [plt.plot([1,1], 'x-')[0] for i in range(4)]
     
+    ping_trasducer = 6
+    recieve_transdcuer = 1
+    
     # Create the target wave using the square wave equation taking into account the resolution and number of pulses required Output is scaled to be plotted on microseconds scale
     target_square_wave = square_wave_gen(PWMwidth, resolution, samples_per_wave)[1]
     
     with Controller() as com:
-        command, recieved_wave_adc0_or_adc1 = create_read_command(1,5,PWMwidth,repetitions) # Read transducer, ping transducer
+        command, recieved_wave_adc0_or_adc1 = create_read_command(recieve_transdcuer,ping_trasducer,PWMwidth,repetitions) # Read transducer, ping transducer
         while True:
             # Take readings with the following command (Pass com as the controller funciton so that it only connects once at the start)
             output_adc0_sorted, output_adc1_sorted, times_x_axis_sorted = read_with_resolution(command, adc_resolution, com, repetitions, PWMdelays, time_per_sample, teensy_cpu_speed_hz)
@@ -109,9 +112,9 @@ if choose == ("1"):
             correlation_signal_times = []
             for i in range(len(correlation_signal)):
                 correlation_signal_times.append(times_x_axis_sorted[i])
-            #li[2].set_ydata(correlation_signal)
-            #li[2].set_xdata(correlation_signal_times)
-            #li[2].set_label("Correlation Fuction")
+            li[2].set_ydata(correlation_signal)
+            li[2].set_xdata(correlation_signal_times)
+            li[2].set_label("Correlation Fuction")
             
             # Calculate the distance to the transducer, knowing that sample rate is 12 per 40kHz wave and assuming speed of sound in air is 343 m/s
             time_to_first_echo = times_x_axis_sorted[sample_number_of_echo]/1000000
