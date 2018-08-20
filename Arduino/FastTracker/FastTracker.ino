@@ -719,7 +719,7 @@ void loop() {
 		}
 		*/
 		
-		setOutputDACFreq(19000, board);
+		setOutputDACFreq(80000, board);
 
 		for (int i = 0; i < 88; i++) {
 			setOffset(i, 0, board, true);
@@ -739,11 +739,11 @@ void loop() {
 				bytearray[1] = 0b00000011 & (power >> 7);
 				bytearray[2] = 0b01111111 & power;
 
-				if (change_freq > 2000000) {
+				/*if (change_freq > 2000000) {
 					setOutputDACFreq((19000 + freq_counter*100), board);
 					freq_counter = freq_counter + 1;
 					change_freq = 0;
-				}
+				}*/
 
 				while (frequency_of_outputs < 65) {
 

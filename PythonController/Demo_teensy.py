@@ -32,10 +32,10 @@ print("(n) = ON")
 print("(h) = Haptic")
 print("(p) = Pattern")
 print("(m) = Moving - Circles abvoe array (NOT WORKING)")
-print("(two) = Two boards, Needs work for both boards at once")
+print("(two) = Two boards, Needs work for both boards at once - not working")
 print("(music) = Music mode")
-print("(t) = Start on sound mode (NOT WORKING)")
-print("(GUI) = Graphical user interface mode")
+print("(t) = Start midi sound mode")
+print("(GUI) = Graphical user interface mode - not working")
 
 choose = input("Please choose a mode from above: ")
 ## --------------------------- Turn off --------------------------- ##
@@ -67,7 +67,7 @@ if choose == ("n"):
 if choose == ("h"):
     print ("Haptic mode selected")
        
-    phi_focus = phase_algorithms.phase_find(rt,0,0,0.1)
+    phi_focus = phase_algorithms.phase_find(rt,0,0,0.05)
 
     from Controller import Controller
     with Controller() as com:        
@@ -91,7 +91,7 @@ if choose == ("h"):
             raise Exception("Failed to start conversion 2", reply_power)
             
         # Send Frequency command 
-        command_freq = Functions.create_board_command_freq(board, 200)
+        command_freq = Functions.create_board_command_freq(board, 2000)
         reply_freq = com.send_json(command_freq)
         if reply_freq["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_freq)
@@ -311,8 +311,8 @@ elif choose == ("music"):
     
     startMarker = 255
     endMarker = 254
-    fs, data = wavfile.read('8bit.wav')
-    #fs, data = wavfile.read('CantinaSong.wav')
+    #fs, data = wavfile.read('8bit.wav')
+    fs, data = wavfile.read('CantinaSong.wav')
     #fs, data = wavfile.read('8bit10sec.wav')
     
     size = len(data)
