@@ -91,7 +91,7 @@ if choose == ("h"):
             raise Exception("Failed to start conversion 2", reply_power)
             
         # Send Frequency command 
-        command_freq = Functions.create_board_command_freq(board, 80000)
+        command_freq = Functions.create_board_command_freq(board, 200)
         reply_freq = com.send_json(command_freq)
         if reply_freq["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_freq)
@@ -309,10 +309,10 @@ elif choose == ("music"):
     from scipy.io import wavfile
     from Controller import Controller
     
-
     startMarker = 255
     endMarker = 254
     fs, data = wavfile.read('8bit.wav')
+    #fs, data = wavfile.read('CantinaSong.wav')
     #fs, data = wavfile.read('8bit10sec.wav')
     
     size = len(data)
@@ -326,7 +326,8 @@ elif choose == ("music"):
             
     print("Finished reading wav from file")
     
-    with Controller() as com:  
+    with Controller() as com:                
+                
         # Send command
         reply = com.send_json(command)
         

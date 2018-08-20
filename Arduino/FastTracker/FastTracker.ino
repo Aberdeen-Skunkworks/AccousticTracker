@@ -719,12 +719,14 @@ void loop() {
 		}
 		*/
 		
-		setOutputDACFreq(76923, board);
+		setOutputDACFreq(19000, board);
 
 		for (int i = 0; i < 88; i++) {
 			setOffset(i, 0, board, true);
 		}
-		
+		int freq_counter = 1;
+		elapsedMicros change_freq;
+		elapsedMicros frequency_of_outputs;
 		for (int i = 0; i < size; i++) {
 			byte power = Serial.read();
 			if (power > 256) { // Not a mistake!the DAC goes from 0 - 256, not 255!
@@ -737,12 +739,24 @@ void loop() {
 				bytearray[1] = 0b00000011 & (power >> 7);
 				bytearray[2] = 0b01111111 & power;
 
+				if (change_freq > 2000000) {
+					setOutputDACFreq((19000 + freq_counter*100), board);
+					freq_counter = freq_counter + 1;
+					change_freq = 0;
+				}
+
+				while (frequency_of_outputs < 65) {
+
+				}
+					
 				if (board == 1) {
 					HWSERIAL_1.write(bytearray, 3);
 				}
 				else if (board == 2) {
 					HWSERIAL_2.write(bytearray, 3);
 				}
+				frequency_of_outputs = 0;
+				
 			}
 
 		}
