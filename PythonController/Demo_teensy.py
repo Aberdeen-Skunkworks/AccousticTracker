@@ -6,7 +6,7 @@
 
 ## ----------------- Writing transducer locations to rt ------------------ ##
 import sys
-sys.path.insert(0, 'C:\git\AccousticLevitator')
+sys.path.insert(0, '../../Project-X/')
 import numpy as np; import transducer_placment; import matplotlib.pyplot as plt;
 import phase_algorithms; import math; import algorithms; import time; from PyQt5 import QtWidgets; 
 import sys; import Functions
@@ -91,7 +91,7 @@ if choose == ("h"):
             raise Exception("Failed to start conversion 2", reply_power)
             
         # Send Frequency command 
-        command_freq = Functions.create_board_command_freq(board, 2000)
+        command_freq = Functions.create_board_command_freq(board, 150)
         reply_freq = com.send_json(command_freq)
         if reply_freq["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_freq)
@@ -111,9 +111,9 @@ elif choose == ("p"):
         
          # Send Power setting command
         command_power = Functions.create_board_command_power(board, 256)
-        reply_power = com.send_json(command_power)
+        reply = com.send_json(command_power)
         if reply["Status"] != "Success":
-            raise Exception("Failed to start conversion", reply_power)
+            raise Exception("Failed to start conversion", reply)
             
         for i in range(88):
             # Send offset commands
@@ -211,7 +211,7 @@ elif choose == ("hm"):
                 raise Exception("Failed to start conversion 2", reply_power)
                 
             # Send Frequency command 
-            command_freq = Functions.create_board_command_freq(board, 200)
+            command_freq = Functions.create_board_command_freq(board, 100)
             reply_freq = com.send_json(command_freq)
             if reply_freq["Status"] != "Success":
                 raise Exception("Failed to start conversion 2", reply_freq)
@@ -309,37 +309,32 @@ elif choose == ("music"):
     from scipy.io import wavfile
     from Controller import Controller
     
-    startMarker = 255
-    endMarker = 254
     #fs, data = wavfile.read('8bit.wav')
     fs, data = wavfile.read('CantinaSong.wav')
-    #fs, data = wavfile.read('8bit10sec.wav')
-    
+    ##fs, data = wavfile.read('8bit10sec.wav')
+    #
+    data = data[:min(len(data),100000)]
+    #data = [int(110*math.sin(i/8*math.pi)+128) for i in range(100000)]
     size = len(data)
-    
+    print("Wave size",size,"bytes")
     data_bytes = bytearray(data)
-    command = Functions.create_board_command_wav(board, fs, size)
+
     
-    for i in range(size):
-        if data[i] == 255 or data[i] == 254:
-            data[i] = 253
-            
+    command = Functions.create_board_command_wav(board, fs, size)
+
     print("Finished reading wav from file")
     
-    with Controller() as com:                
-                
+    with Controller() as com:      
         # Send command
         reply = com.send_json(command)
-        
-        com.com.write(bytes([startMarker]))
-        com.com.write(data_bytes)
-        com.com.write(bytes([endMarker]))
-        
-        print("done sending")
-            
         if reply["Status"] != "Success":
-            raise Exception("Failed to send song", reply)
-            
+            raise Exception("Failed to send song start", reply)
+        
+        print("Starting byte send")
+        com.com.write(data_bytes)
+        com.com.write(b"\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+        print("Byte send complete")
+                        
 elif choose == ("test"):
     
     import wave, struct, numpy as np
@@ -349,7 +344,7 @@ elif choose == ("test"):
     data = np.linspace(0,253, 160000, dtype = int)
     data = data.tolist()
     #data = [1,2,3,4,5,6,1,2,3,4,5,6,1,2,3,4,5,6,1,2,3,4,5,6,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,34,125]
-    
+
     fs = 12000
     size = len(data)
     startMarker = 255

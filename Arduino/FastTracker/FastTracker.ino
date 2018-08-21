@@ -60,8 +60,8 @@ void setup() {
 
 
   Serial.begin(115200);
-  HWSERIAL_1.begin(250000, SERIAL_8N1);
-  HWSERIAL_2.begin(250000, SERIAL_8N1);
+  HWSERIAL_1.begin(1250000, SERIAL_8N1);
+  HWSERIAL_2.begin(1250000, SERIAL_8N1);
 
   // Start up the library
   sensors.begin();
@@ -173,7 +173,8 @@ void sendCmd(byte bytearray[3], int board) {
 	digitalWrite(27, LOW);
 
 	// Delay to allow FPGA to reply
-	delayMicroseconds(200);
+	delayMicroseconds(200); // This is sufficient for a 4 byte reply at 250000 BAUD
+
 
 	// Read in the reply one byte at a time
 	if (board == 1) {
@@ -374,18 +375,7 @@ void disableOutput(int clock, int board) { // clock is the clock on the FPGA cor
 	setOffset(clock, 0, board, false);
 }
 
-
-
-elapsedMicros sync_timer;
 void loop() {
-
-	if (sync_timer > 1000) {
-		sync_timer = 0;
-		digitalWrite(35, HIGH);
-		delayMicroseconds(5);
-		digitalWrite(35, LOW);
-	}
-
   //Try to parse the JSON commands coming in via the serial port
   DynamicJsonBuffer jsonBuffer;
   JsonObject& json_in_root = jsonBuffer.parseObject(Serial, 2);
@@ -683,81 +673,45 @@ void loop() {
 		Serial.print("{\"Status\":\"Success\"");
 		Serial.print("}\n");
 
-		/*while (newData == false && timeout < 3000) {
+    digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
+    for (int i = 0; i < size;)
+      if (Serial.available()) {
+        power[i] = Serial.read();
+        i++;
+      }
+		digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
 
-			static boolean recvInProgress = false;
-			static byte ndx = 0;
-			int startMarker = 255;
-			int endMarker = 254;
-			int rc;
-
-			while (Serial.available() > 0 && newData == false) {
-				rc = Serial.read();
-				if (recvInProgress == true) {
-					if (rc != endMarker) {
-						power[ndx] = rc;
-						ndx++;
-						if (ndx >= size) {
-							recvInProgress = false;
-							ndx = 0;
-							newData = true;
-						}
-					}
-					else {
-						recvInProgress = false;
-						ndx = 0;
-						newData = true;
-					}
-				}
-
-				else if (rc == startMarker) {
-					recvInProgress = true;
-				}
-			}
-		}
-		*/
-		
 		setOutputDACFreq(80000, board);
-
 		for (int i = 0; i < 88; i++) {
 			setOffset(i, 0, board, true);
 		}
+ 
 		int freq_counter = 1;
 		elapsedMicros change_freq;
 		elapsedMicros frequency_of_outputs;
 		for (int i = 0; i < size; i++) {
-			byte power = Serial.read();
-			if (power > 256) { // Not a mistake!the DAC goes from 0 - 256, not 255!
-				Serial.print("{\"Status\":\"Fail\", \"Error\":\"Power selected is too large!\"}\n");
-				baord_error = true;
-			}
-			else {
-				byte bytearray[3];
-				bytearray[0] = 0b11100000;
-				bytearray[1] = 0b00000011 & (power >> 7);
-				bytearray[2] = 0b01111111 & power;
-
-				/*if (change_freq > 2000000) {
-					setOutputDACFreq((19000 + freq_counter*100), board);
-					freq_counter = freq_counter + 1;
-					change_freq = 0;
-				}*/
-
-				while (frequency_of_outputs < 65) {
-
-				}
-					
-				if (board == 1) {
-					HWSERIAL_1.write(bytearray, 3);
-				}
-				else if (board == 2) {
-					HWSERIAL_2.write(bytearray, 3);
-				}
-				frequency_of_outputs = 0;
+		  if (power[i] > 256) { // Not a mistake!the DAC goes from 0 - 256, not 255!
+		    Serial.print("{\"Status\":\"Fail\", \"Error\":\"Power selected is too large!\"}\n");
+		    baord_error = true;
+		  }
+		  else {
+		    byte bytearray[3];
+		    bytearray[0] = 0b11100000;
+		    bytearray[1] = 0b00000011 & (power[i] >> 7);
+		    bytearray[2] = 0b01111111 & power[i];
 				
-			}
-
+		    while (frequency_of_outputs < 65) {}
+					
+		    if (board == 1) {
+		      HWSERIAL_1.write(bytearray, 3);
+		    }
+		    else if (board == 2) {
+		      HWSERIAL_2.write(bytearray, 3);
+		    }
+		    frequency_of_outputs = 0;
+		  }
 		}
+    digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
 
 		delete[] power;
 

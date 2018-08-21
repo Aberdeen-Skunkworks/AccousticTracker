@@ -44,7 +44,7 @@ class Controller():
     def __enter__(self):
         for port in self.serial_ports():
             print("Trying port " + str(port)+" ", end="")
-            self.com = serial.Serial(port=port, baudrate=115200, timeout=0.01)
+            self.com = serial.Serial(port=port, baudrate=500000000, timeout=0.01)
             reply = self.send_json({"CMD":0})
             if reply["Status"] != "Success":
                 print("Failed! " + repr(reply))
