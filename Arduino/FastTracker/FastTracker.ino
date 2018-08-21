@@ -60,10 +60,8 @@ void setup() {
 
 
   Serial.begin(115200);
-  HWSERIAL_1.begin(460800, SERIAL_8N1);
-  HWSERIAL_2.begin(460800, SERIAL_8N1);
-
-
+  HWSERIAL_1.begin(250000, SERIAL_8N1);
+  HWSERIAL_2.begin(250000, SERIAL_8N1);
 
   // Start up the library
   sensors.begin();
@@ -175,7 +173,7 @@ void sendCmd(byte bytearray[3], int board) {
 	digitalWrite(27, LOW);
 
 	// Delay to allow FPGA to reply
-	delayMicroseconds(150);
+	delayMicroseconds(200);
 
 	// Read in the reply one byte at a time
 	if (board == 1) {
@@ -192,13 +190,13 @@ void sendCmd(byte bytearray[3], int board) {
 	// Print out the error message if the send command and the echo are different
 	if (FPGA_reply[0] != bytearray[0] || FPGA_reply[1] != bytearray[1] || FPGA_reply[2] != bytearray[2]) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Recieved different reply from FPGA\", \"sent\":");
-		Serial.print(bytearray[0]);
-		Serial.print(bytearray[1]);
-		Serial.print(bytearray[2]);
+		Serial.print(bytearray[0],HEX);
+		Serial.print(bytearray[1],HEX);
+		Serial.print(bytearray[2],HEX);
 		Serial.print(", \"recieved\":");
-		Serial.print(FPGA_reply[0]);
-		Serial.print(FPGA_reply[1]);
-		Serial.print(FPGA_reply[2]);
+		Serial.print(FPGA_reply[0],HEX);
+		Serial.print(FPGA_reply[1],HEX);
+		Serial.print(FPGA_reply[2],HEX);
 		Serial.print("}\n");
 		baord_error = true;
 	}
