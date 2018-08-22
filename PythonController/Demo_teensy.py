@@ -67,7 +67,7 @@ if choose == ("n"):
 if choose == ("h"):
     print ("Haptic mode selected")
        
-    phi_focus = phase_algorithms.phase_find(rt,0,0,0.05)
+    phi_focus = phase_algorithms.phase_find(rt,0,0,0.15)
 
     from Controller import Controller
     with Controller() as com:        
@@ -85,13 +85,14 @@ if choose == ("h"):
             raise Exception("Failed to start conversion 1", reply)
         
         # Send Power setting command
-        command_power = Functions.create_board_command_power(board, 128)
+        command_power = Functions.create_board_command_power(board, 256)
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
             
         # Send Frequency command 
-        command_freq = Functions.create_board_command_freq(board, 150)
+        #command_freq = Functions.create_board_command_divisor(board, 512)
+        command_freq = Functions.create_board_command_freq(board, 200)
         reply_freq = com.send_json(command_freq)
         if reply_freq["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_freq)
@@ -320,12 +321,16 @@ elif choose == ("music"):
     data_bytes = bytearray(data)
 
     
-    command = Functions.create_board_command_wav(board, fs, size)
-
     print("Finished reading wav from file")
     
     with Controller() as com:      
+        command = Functions.create_board_command_freq(board, 40000)
+        reply = com.send_json(command)
+        if reply["Status"] != "Success":
+            raise Exception("Failed to send DAC freq", reply)
+        
         # Send command
+        command = Functions.create_board_command_wav(board, fs, size)
         reply = com.send_json(command)
         if reply["Status"] != "Success":
             raise Exception("Failed to send song start", reply)

@@ -327,7 +327,7 @@ void  setOutputDACPower(int power, int board) {
 	// | 1 | 1 | 1 | X | X | X | X | X | 0 | X | X | X | X | X | X | Y | 0 | Y | Y | Y | Y | Y | Y | Y |
 	// X = UNUSED
 	// Y = 7 bit DAC value
-	if (power > 256) { // Not a mistake!the DAC goes from 0 - 256, not 255!
+	if (power > 511) { // DAC goes to 512
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Power selected is too large!\"}\n");
 		baord_error = true;
 	}
@@ -351,10 +351,10 @@ void setOutputDACDivisor(int divisor, int board) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"DAC dicisor selected is too large!\"}\n");
 		baord_error = true;
 	}
-	else if (divisor < 50) {
-		Serial.print("{\"Status\":\"Fail\", \"Error\":\"You'll burn out the board if the divisor is too low (<50).\"}\n");
-		baord_error = true;
-	}
+	//else if (divisor < 50) {
+	//	Serial.print("{\"Status\":\"Fail\", \"Error\":\"You'll burn out the board if the divisor is too low (<50).\"}\n");
+	//	baord_error = true;
+	//}
 	else {
 		byte bytearray[3];
 		bytearray[0] = 0b10100000 | (0b00011111 & (divisor >> 14));
@@ -367,7 +367,7 @@ void setOutputDACDivisor(int divisor, int board) {
 
 void setOutputDACFreq(double freq, int board) {
 	//setOutputDACPower(128, board); // 50 % duty cycle, turns the board off and on for equal amounts of time
-	int divisor_int = (5e7 / (4 * freq) + 1);
+	int divisor_int = 5e7 / (freq * 1024) - 1;
 	setOutputDACDivisor(divisor_int, board);
 }
 
@@ -681,7 +681,7 @@ void loop() {
       }
 		digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
 
-		setOutputDACFreq(80000, board);
+		//setOutputDACFreq(40000, board);
 		for (int i = 0; i < 88; i++) {
 			setOffset(i, 0, board, true);
 		}
@@ -697,8 +697,8 @@ void loop() {
 		  else {
 		    byte bytearray[3];
 		    bytearray[0] = 0b11100000;
-		    bytearray[1] = 0b00000011 & (power[i] >> 7);
-		    bytearray[2] = 0b01111111 & power[i];
+		    bytearray[1] = 0b00000011 & (2*power[i] >> 7); //DAC is 9 bit, so 512 max
+		    bytearray[2] = 0b01111111 & 2*power[i];
 				
 		    while (frequency_of_outputs < 65) {}
 					
