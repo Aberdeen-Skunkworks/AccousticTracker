@@ -31,6 +31,7 @@ print("(o) = OFF")
 print("(n) = ON")
 print("(h) = Haptic")
 print("(p) = Pattern")
+print("(power) = Wireless Power")
 print("(m) = Moving - Circles abvoe array (NOT WORKING)")
 print("(two) = Two boards, Needs work for both boards at once - not working")
 print("(music) = Music mode")
@@ -50,8 +51,7 @@ if choose == ("o"):
             raise Exception("Failed to start conversion 2", reply_power)
             
 ## --------------------------- Turn On --------------------------- ##
-
-if choose == ("n"):
+elif choose == ("n"):
     
     from Controller import Controller
     with Controller() as com:        
@@ -59,15 +59,47 @@ if choose == ("n"):
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
+            
+## --------------------------- Wireless power --------------------------- ##
+    
+
+elif choose == ("power"):
+    print ("Wireless Power mode selected")
+       
+    phi_zeros = np.zeros(88)
+    phi_focus = phase_algorithms.phase_find(rt,0,0,0.60)
+
+    from Controller import Controller
+    with Controller() as com:        
+        for i in range(88):
+            # Send offset commands
+            command = Functions.create_board_command_offset(board, i, phi_zeros[i], True)
+            reply = com.send_json(command)
+            if reply["Status"] != "Success":
+                raise Exception("Failed to start conversion 1", reply)
+                
+        # Send load offset command
+        command = Functions.create_board_command_load_offsets(board)
+        reply = com.send_json(command)
+        if reply["Status"] != "Success":
+            raise Exception("Failed to start conversion 1", reply)
+        
+        # Send Power setting command
+        command_power = Functions.create_board_command_power(board, 511)
+        reply_power = com.send_json(command_power)
+        if reply_power["Status"] != "Success":
+            raise Exception("Failed to start conversion 2", reply_power)
+            
+            
 
 ## --------------------------- Haptic feedback --------------------------- ##
     
 
 
-if choose == ("h"):
+elif choose == ("h"):
     print ("Haptic mode selected")
        
-    phi_focus = phase_algorithms.phase_find(rt,0,0,0.15)
+    phi_focus = phase_algorithms.phase_find(rt,0,0,0.10)
 
     from Controller import Controller
     with Controller() as com:        
@@ -110,8 +142,8 @@ elif choose == ("p"):
     from Controller import Controller
     with Controller() as com:  
         
-         # Send Power setting command
-        command_power = Functions.create_board_command_power(board, 256)
+        # Send Power setting command
+        command_power = Functions.create_board_command_power(board, 511)
         reply = com.send_json(command_power)
         if reply["Status"] != "Success":
             raise Exception("Failed to start conversion", reply)
