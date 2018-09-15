@@ -124,7 +124,7 @@ elif choose == ("h"):
             
         # Send Frequency command 
         #command_freq = Functions.create_board_command_divisor(board, 512)
-        command_freq = Functions.create_board_command_freq(board, 200)
+        command_freq = Functions.create_board_command_freq(board, 500)
         reply_freq = com.send_json(command_freq)
         if reply_freq["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_freq)
