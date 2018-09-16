@@ -32,9 +32,8 @@ print("(n) = ON")
 print("(h) = Haptic")
 print("(p) = Pattern")
 print("(power) = Wireless Power")
-print("(m) = Moving - Circles abvoe array (NOT WORKING)")
 print("(two) = Two boards, Needs work for both boards at once - not working")
-print("(music) = Music mode")
+print("(music) = Music mode (Buzzing noise from harmonics)")
 print("(t) = Start midi sound mode")
 print("(GUI) = Graphical user interface mode - not working")
 
@@ -60,38 +59,8 @@ elif choose == ("n"):
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
             
-## --------------------------- Wireless power --------------------------- ##
-    
 
-elif choose == ("power"):
-    print ("Wireless Power mode selected")
-       
-    phi_zeros = np.zeros(88)
-    phi_focus = phase_algorithms.phase_find(rt,0,0,0.60)
-
-    from Controller import Controller
-    with Controller() as com:        
-        for i in range(88):
-            # Send offset commands
-            command = Functions.create_board_command_offset(board, i, phi_zeros[i], True)
-            reply = com.send_json(command)
-            if reply["Status"] != "Success":
-                raise Exception("Failed to start conversion 1", reply)
-                
-        # Send load offset command
-        command = Functions.create_board_command_load_offsets(board)
-        reply = com.send_json(command)
-        if reply["Status"] != "Success":
-            raise Exception("Failed to start conversion 1", reply)
-        
-        # Send Power setting command
-        command_power = Functions.create_board_command_power(board, 511)
-        reply_power = com.send_json(command_power)
-        if reply_power["Status"] != "Success":
-            raise Exception("Failed to start conversion 2", reply_power)
-            
-            
-
+                   
 ## --------------------------- Haptic feedback --------------------------- ##
     
 
@@ -162,60 +131,38 @@ elif choose == ("p"):
             raise Exception("Failed to start conversion 1", reply)
         
 
-
-
-## -------------------------- Moving traps ------------------------------- ##
-
-elif choose == ("m"):
-    print ("Move mode selected")
-    
-    circle_co_ords = algorithms.circle_co_ords(50, 0.005)
-    #line_coordinates = np.linspace(0,2,100)
-    
-    
-    phi_focus = np.zeros([ntrans,len(circle_co_ords[0])])
-    phi =  np.zeros([ntrans,len(circle_co_ords[0])])
-    phase_index = np.zeros(([ntrans,len(circle_co_ords[0])]),dtype=int)
+## --------------------------- Wireless power --------------------------- ##
     
 
-    for point in range (0,len(circle_co_ords[0])):
-        
-        phi_focus_all = phase_algorithms.phase_find(rt,circle_co_ords[0][point],0.015,circle_co_ords[1][point]) # phi is the initial phase of each transducer to focus on a point
-        for transducer in range(0,ntrans):
-            phi_focus[transducer][point] = phi_focus_all[transducer]
-    
-        phi_all = phase_algorithms.add_twin_signature(rt,phi_focus_all)
-        for transducer in range(0,ntrans):
-            phi[transducer][point] = phi_all[transducer]
-        
-        for transducer in range(0,ntrans):
-            phase_index[transducer][point] = int(2500-phi_focus[transducer][point]/((2*math.pi)/1250))    
-        
-    
-    from connect import Controller  
-    with Controller() as ctl:
-        ctl.setOutputDACPower(256)
-        ctl.setOutputDACDivisor(100)
+elif choose == ("power"):
+    print ("Wireless Power mode selected")
+       
+    phi_zeros = np.zeros(88)
+    phi_focus = phase_algorithms.phase_find(rt,0,0,0.60)
 
-        print("You have 25 seconds to trap the particle until fuzzing stops")
-        a = 1
-        print(circle_co_ords[0][0],circle_co_ords[1][0])
-        while a==1: 
-            for fuzz in range(6000):
-                for i in range(ctl.outputs):
-                    ctl.setOffset(i,phase_index[i][0])
-                ctl.loadOffsets()
-            a = 0
-    
-        print("Moving")
-        while True: 
-            for point in range (0,len(circle_co_ords[0])):
-                for i in range(ctl.outputs):
-                    ctl.setOffset(i,phase_index[i][point])
-                ctl.loadOffsets()
+    from Controller import Controller
+    with Controller() as com:        
+        for i in range(88):
+            # Send offset commands
+            command = Functions.create_board_command_offset(board, i, phi_zeros[i], True)
+            reply = com.send_json(command)
+            if reply["Status"] != "Success":
+                raise Exception("Failed to start conversion 1", reply)
                 
+        # Send load offset command
+        command = Functions.create_board_command_load_offsets(board)
+        reply = com.send_json(command)
+        if reply["Status"] != "Success":
+            raise Exception("Failed to start conversion 1", reply)
+        
+        # Send Power setting command
+        command_power = Functions.create_board_command_power(board, 511)
+        reply_power = com.send_json(command_power)
+        if reply_power["Status"] != "Success":
+            raise Exception("Failed to start conversion 2", reply_power)
+
                 
-## -------------------------- Moving traps ------------------------------- ##
+## -------------------------- Haptic moving ------------------------------- ##
 
 elif choose == ("hm"):
     print ("Haptic move mode selected")
@@ -268,7 +215,7 @@ elif choose == ("hm"):
 # -------------------------------------------------------------------------- #
 
 elif choose == ("two"):
-    print ("Move mode selected")
+    print ("Two boards mode selected")
     
     sideways_1 = np.copy(rt)
     sideways_2 = np.copy(rt)
@@ -298,40 +245,6 @@ elif choose == ("two"):
         ctl.loadOffsets()
         print("loaded offsets")
 
-# -------------------------------------------------------------------------- #
-
-elif choose == ("w"):
-    # Frequency mode not really required anymore
-    from connect import Controller  
-    phase_index = np.zeros((ntrans),dtype=int)
-    phi_focus = phase_algorithms.phase_find(rt,0,0,0.2)
-    for transducer in range(0,ntrans):
-        phase_index[transducer] = int(2500-phi_focus[transducer]/((2*math.pi)/1250))
-    
-    with Controller() as ctl:
-        updateRate = ctl.benchmarkPower()
-        print("Update freq = ", updateRate)
-        ctl.setOutputDACDivisor(50)
-        ctl.setOutputDACPower(255)
-
-        for i in range(ctl.outputs):
-            ctl.setOffset(i,phase_index[i])
-
-        targetfreq = 1000
-        rollover = updateRate / targetfreq / 2
-        counter = 0
-        import wave
-        wav = wave.open("test.wav", 'r')
-        
-        while True:
-            if (counter > 2* rollover):
-                counter = counter % (2 * rollover)
-
-            if (counter < rollover):
-                ctl.setOutputDACPower(0)
-            elif (counter < 2 * rollover):
-                ctl.setOutputDACPower(255)
-            counter = counter + 1
             
 # -------------------------------------------------------------------------- #
 
@@ -387,11 +300,9 @@ elif choose == ("test"):
     startMarker = 255
     endMarker = 254
     
-    
     for i in range(size):
         if data[i] == 255 or data[i] == 254:
             data[i] = 253
-            
             
     data_bytes = bytearray(data)
     command = Functions.create_board_command_wav(board, fs, size)
@@ -406,9 +317,6 @@ elif choose == ("test"):
         com.com.write(data_bytes)
         com.com.write(bytes([endMarker]))
 
-
-            
-    
 # -------------------------------------------------------------------------- #
 
 elif choose == ("t"):
@@ -464,9 +372,7 @@ elif choose == ("t"):
                 if reply_power["Status"] != "Success":
                     raise Exception("Failed to start conversion 2", reply_power)
                 
-                
-                
-                
+ 
 # -------------------------------------------------------------------------- #
 
 elif choose == ("GUI"):
@@ -580,13 +486,27 @@ elif choose == ("GUI"):
             print("Phase index is ", phase_index)
             print("New Position: ","x = " "%.3f" % x, "y = " "%.3f" % y, "z = " "%.3f" % z) #tester
             
-            from connect import Controller
-            with Controller() as ctl:
-                ctl.setOutputDACPower(256)
-                ctl.setOutputDACDivisor(100)
-                for i in range(ctl.outputs):
-                    ctl.setOffset(i,phase_index[i])
-                ctl.loadOffsets()
+            from Controller import Controller
+            with Controller() as com:  
+    
+                # Send Power setting command
+                command_power = Functions.create_board_command_power(board, 511)
+                reply = com.send_json(command_power)
+                if reply["Status"] != "Success":
+                    raise Exception("Failed to start conversion", reply)
+                    
+                for i in range(88):
+                    # Send offset commands
+                    command = Functions.create_board_command_offset(board, i, phi[i])
+                    reply = com.send_json(command)
+                    if reply["Status"] != "Success":
+                        raise Exception("Failed to start conversion", reply)
+                        
+                # Send load offset command
+                command = Functions.create_board_command_load_offsets(board)
+                reply = com.send_json(command)
+                if reply["Status"] != "Success":
+                    raise Exception("Failed to start conversion 1", reply)
 
         def calculate_and_move_trap_no_print(self):
             
