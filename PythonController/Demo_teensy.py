@@ -378,6 +378,8 @@ elif choose == ("t"):
 elif choose == ("GUI"):
     print ("GUI mode selected")
     
+    import math; import phase_algorithms; import numpy as np; import transducer_placment
+    
     # Initial position in m (x , y , z) (z = up)
     global x,y,z
     x = 0    
@@ -393,9 +395,9 @@ elif choose == ("GUI"):
             
             super().__init__()
             
-            #from connect import Controller
-            #self.ctl = Controller()
-            #self.ctl.__enter__()
+            from Controller import Controller
+            self.com = Controller()
+            self.com.__enter__()
             self.init_ui()
         
         def init_ui(self):
@@ -474,8 +476,7 @@ elif choose == ("GUI"):
             self.show()
     
         def calculate_and_move_trap(self):
-            import math; import phase_algorithms; import numpy as np; import transducer_placment
-            global phase_index
+            global phi
             
             phi_focus = phase_algorithms.phase_find(rt,x,y,z)
             phi = phase_algorithms.add_twin_signature(rt,phi_focus, 90)
@@ -485,67 +486,63 @@ elif choose == ("GUI"):
             print("Phase index is ", phi)
             print("New Position: ","x = " "%.3f" % x, "y = " "%.3f" % y, "z = " "%.3f" % z) #tester
             
-            from Controller import Controller
-            with Controller() as com:  
-    
-                # Send Power setting command
-                command_power = Functions.create_board_command_power(board, 511)
-                reply = com.send_json(command_power)
+
+            print("Got here")
+            # Send Power setting command
+            command_power = Functions.create_board_command_power(board, 511)
+            reply = self.com.send_json(command_power)
+            if reply["Status"] != "Success":
+                raise Exception("Failed to start conversion", reply)
+                
+            for i in range(88):
+                # Send offset commands
+                command = Functions.create_board_command_offset(board, i, phi[i])
+                reply = self.com.send_json(command)
                 if reply["Status"] != "Success":
                     raise Exception("Failed to start conversion", reply)
                     
-                for i in range(88):
-                    # Send offset commands
-                    command = Functions.create_board_command_offset(board, i, phi[i])
-                    reply = com.send_json(command)
-                    if reply["Status"] != "Success":
-                        raise Exception("Failed to start conversion", reply)
-                        
-                # Send load offset command
-                command = Functions.create_board_command_load_offsets(board)
-                reply = com.send_json(command)
-                if reply["Status"] != "Success":
-                    raise Exception("Failed to start conversion 1", reply)
+            # Send load offset command
+            command = Functions.create_board_command_load_offsets(board)
+            reply = self.com.send_json(command)
+            if reply["Status"] != "Success":
+                raise Exception("Failed to start conversion 1", reply)
 
         def calculate_and_move_trap_no_print(self):
-            
-            from Controller import Controller
-            with Controller() as com:  
-    
-                # Send Power setting command
-                command_power = Functions.create_board_command_power(board, 511)
-                reply = com.send_json(command_power)
+        
+            # Send Power setting command
+            command_power = Functions.create_board_command_power(board, 511)
+            reply = self.com.send_json(command_power)
+            if reply["Status"] != "Success":
+                raise Exception("Failed to start conversion", reply)
+                
+            for i in range(88):
+                # Send offset commands
+                command = Functions.create_board_command_offset(board, i, phi[i])
+                reply = self.com.send_json(command)
                 if reply["Status"] != "Success":
                     raise Exception("Failed to start conversion", reply)
                     
-                for i in range(88):
-                    # Send offset commands
-                    command = Functions.create_board_command_offset(board, i, phi[i])
-                    reply = com.send_json(command)
-                    if reply["Status"] != "Success":
-                        raise Exception("Failed to start conversion", reply)
-                        
-                # Send load offset command
-                command = Functions.create_board_command_load_offsets(board)
-                reply = com.send_json(command)
-                if reply["Status"] != "Success":
-                    raise Exception("Failed to start conversion 1", reply)
+            # Send load offset command
+            command = Functions.create_board_command_load_offsets(board)
+            reply = self.com.send_json(command)
+            if reply["Status"] != "Success":
+                raise Exception("Failed to start conversion 1", reply)
         
         def turn_off_board_click(self):
-            from Controller import Controller
-            with Controller() as com:        
-                command_power = Functions.create_board_command_power(board, 0)
-                reply_power = com.send_json(command_power)
-                if reply_power["Status"] != "Success":
-                    raise Exception("Failed to start conversion 2", reply_power)
+            print("Board off")
+   
+            command_power = Functions.create_board_command_power(board, 0)
+            reply_power = self.com.send_json(command_power)
+            if reply_power["Status"] != "Success":
+                raise Exception("Failed to start conversion 2", reply_power)
 
         def turn_on_board_click(self):
-            from Controller import Controller
-            with Controller() as com:        
-                command_power = Functions.create_board_command_power(board, 511)
-                reply_power = com.send_json(command_power)
-                if reply_power["Status"] != "Success":
-                    raise Exception("Failed to start conversion 2", reply_power)
+            print("Board on")
+       
+            command_power = Functions.create_board_command_power(board, 511)
+            reply_power = self.com.send_json(command_power)
+            if reply_power["Status"] != "Success":
+                raise Exception("Failed to start conversion 2", reply_power)
                 
         def capture_click(self):
             
