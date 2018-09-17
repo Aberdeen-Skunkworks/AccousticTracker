@@ -381,10 +381,11 @@ elif choose == ("GUI"):
     import math; import phase_algorithms; import numpy as np; import transducer_placment
     
     # Initial position in m (x , y , z) (z = up)
-    global x,y,z
+    global x,y,z, angle
     x = 0    
     y = 0
     z = 0.02
+    angle = 0
     rt = transducer_placment.big_daddy()
     ntrans = len(rt);
     phi = np.zeros((ntrans),dtype=int)
@@ -476,24 +477,12 @@ elif choose == ("GUI"):
             self.show()
     
         def calculate_and_move_trap(self):
-            global phi
+            global phi, angle
             
             phi_focus = phase_algorithms.phase_find(rt,x,y,z)
-            phi = phase_algorithms.add_twin_signature(rt,phi_focus, 90)
+            phi = phase_algorithms.add_twin_signature(rt,phi_focus, angle)
  
-            print(" ")
-            print("Moved!")
-            print("Phase index is ", phi)
-            print("New Position: ","x = " "%.3f" % x, "y = " "%.3f" % y, "z = " "%.3f" % z) #tester
-            
-
-            print("Got here")
-            # Send Power setting command
-            command_power = Functions.create_board_command_power(board, 511)
-            reply = self.com.send_json(command_power)
-            if reply["Status"] != "Success":
-                raise Exception("Failed to start conversion", reply)
-                
+                            
             for i in range(88):
                 # Send offset commands
                 command = Functions.create_board_command_offset(board, i, phi[i])
@@ -507,26 +496,6 @@ elif choose == ("GUI"):
             if reply["Status"] != "Success":
                 raise Exception("Failed to start conversion 1", reply)
 
-        def calculate_and_move_trap_no_print(self):
-        
-            # Send Power setting command
-            command_power = Functions.create_board_command_power(board, 511)
-            reply = self.com.send_json(command_power)
-            if reply["Status"] != "Success":
-                raise Exception("Failed to start conversion", reply)
-                
-            for i in range(88):
-                # Send offset commands
-                command = Functions.create_board_command_offset(board, i, phi[i])
-                reply = self.com.send_json(command)
-                if reply["Status"] != "Success":
-                    raise Exception("Failed to start conversion", reply)
-                    
-            # Send load offset command
-            command = Functions.create_board_command_load_offsets(board)
-            reply = self.com.send_json(command)
-            if reply["Status"] != "Success":
-                raise Exception("Failed to start conversion 1", reply)
         
         def turn_off_board_click(self):
             print("Board off")
@@ -555,25 +524,29 @@ elif choose == ("GUI"):
                 print("Raised to final height")
     
         def forward_click(self):
-            global x               
+            global x, angle  
+            angle = 0
             x += 0.001
             self.calculate_and_move_trap()
             print('x changed to = ', "%.3f" % x)
         
         def backward_click(self):
-            global x 
+            global x, angle  
+            angle = 0
             x -= 0.001
             self.calculate_and_move_trap()
             print('x changed to = ', "%.3f" % x)
             
         def left_click(self):
-            global y 
+            global y, angle  
+            angle = 90
             y += 0.001
             self.calculate_and_move_trap()
             print('y changed to = ', "%.3f" % y)
             
         def right_click(self):
-            global y 
+            global y, angle  
+            angle = 90
             y -= 0.001
             self.calculate_and_move_trap()
             print('y changed to = ', "%.3f" % y)
