@@ -385,7 +385,7 @@ elif choose == ("GUI"):
     z = 0.02
     rt = transducer_placment.big_daddy()
     ntrans = len(rt);
-    phase_index = np.zeros((ntrans),dtype=int)
+    phi = np.zeros((ntrans),dtype=int)
     
     class Window_update_trap(QtWidgets.QWidget):
     
@@ -479,11 +479,10 @@ elif choose == ("GUI"):
             
             phi_focus = phase_algorithms.phase_find(rt,x,y,z)
             phi = phase_algorithms.add_twin_signature(rt,phi_focus, 90)
-            for transducer in range(0,ntrans):
-                phase_index[transducer] = int(2500-phi[transducer]/((2*math.pi)/1250)) 
+ 
             print(" ")
             print("Moved!")
-            print("Phase index is ", phase_index)
+            print("Phase index is ", phi)
             print("New Position: ","x = " "%.3f" % x, "y = " "%.3f" % y, "z = " "%.3f" % z) #tester
             
             from Controller import Controller
@@ -510,30 +509,43 @@ elif choose == ("GUI"):
 
         def calculate_and_move_trap_no_print(self):
             
-            from connect import Controller
-            with Controller() as ctl:
-                ctl.setOutputDACPower(256)
-                ctl.setOutputDACDivisor(100)
-                for i in range(ctl.outputs):
-                    ctl.setOffset(i,phase_index[i])
-                ctl.setOutputDACFreq(200)
-                ctl.loadOffsets()
+            from Controller import Controller
+            with Controller() as com:  
+    
+                # Send Power setting command
+                command_power = Functions.create_board_command_power(board, 511)
+                reply = com.send_json(command_power)
+                if reply["Status"] != "Success":
+                    raise Exception("Failed to start conversion", reply)
+                    
+                for i in range(88):
+                    # Send offset commands
+                    command = Functions.create_board_command_offset(board, i, phi[i])
+                    reply = com.send_json(command)
+                    if reply["Status"] != "Success":
+                        raise Exception("Failed to start conversion", reply)
+                        
+                # Send load offset command
+                command = Functions.create_board_command_load_offsets(board)
+                reply = com.send_json(command)
+                if reply["Status"] != "Success":
+                    raise Exception("Failed to start conversion 1", reply)
         
         def turn_off_board_click(self):
-            from connect import Controller
-            with Controller() as ctl:
-                for i in range(ctl.outputs):
-                    ctl.disableOutput(i)
-                ctl.loadOffsets()
+            from Controller import Controller
+            with Controller() as com:        
+                command_power = Functions.create_board_command_power(board, 0)
+                reply_power = com.send_json(command_power)
+                if reply_power["Status"] != "Success":
+                    raise Exception("Failed to start conversion 2", reply_power)
 
         def turn_on_board_click(self):
-            from connect import Controller
-            with Controller() as ctl:
-                ctl.setOutputDACPower(256)
-                ctl.setOutputDACDivisor(100)
-                for i in range(ctl.outputs):
-                    ctl.setOffset(i,phase_index[i])
-                ctl.loadOffsets()
+            from Controller import Controller
+            with Controller() as com:        
+                command_power = Functions.create_board_command_power(board, 511)
+                reply_power = com.send_json(command_power)
+                if reply_power["Status"] != "Success":
+                    raise Exception("Failed to start conversion 2", reply_power)
                 
         def capture_click(self):
             
