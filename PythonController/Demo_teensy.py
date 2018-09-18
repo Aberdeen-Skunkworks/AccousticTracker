@@ -381,11 +381,12 @@ elif choose == ("GUI"):
     import math; import phase_algorithms; import numpy as np; import transducer_placment
     
     # Initial position in m (x , y , z) (z = up)
-    global x,y,z, angle
+    global x,y,z, angle, haptic_toggle
     x = 0    
     y = 0
     z = 0.02
     angle = 0
+    haptic_toggle = False
     rt = transducer_placment.big_daddy()
     ntrans = len(rt);
     phi = np.zeros((ntrans),dtype=int)
@@ -400,6 +401,9 @@ elif choose == ("GUI"):
             self.com = Controller()
             self.com.__enter__()
             self.init_ui()
+            self.turn_on_board_click()
+            self.calculate_and_move_trap()
+
         
         def init_ui(self):
             
@@ -410,7 +414,7 @@ elif choose == ("GUI"):
             self.left = QtWidgets.QPushButton('Left')
             self.up = QtWidgets.QPushButton('Up')
             self.down = QtWidgets.QPushButton('Down')
-            self.fuzz = QtWidgets.QPushButton('FUZZ')
+            self.haptic = QtWidgets.QPushButton('Haptic Toggle')
             self.reset = QtWidgets.QPushButton('Reset to [0, 0, 0.02]')
             self.turn_off = QtWidgets.QPushButton('OFF')
             self.turn_on = QtWidgets.QPushButton('ON')   
@@ -442,7 +446,7 @@ elif choose == ("GUI"):
             h_box2.addWidget(self.right) 
             
             h_box3 = QtWidgets.QHBoxLayout()
-            h_box3.addWidget(self.fuzz)
+            h_box3.addWidget(self.haptic)
             h_box3.addWidget(self.capture)
             h_box3.addWidget(self.reset)
             
@@ -468,7 +472,7 @@ elif choose == ("GUI"):
             self.right.clicked.connect(self.right_click)
             self.up.clicked.connect(self.up_click)
             self.down.clicked.connect(self.down_click)
-            self.fuzz.clicked.connect(self.fuzz_click)
+            self.haptic.clicked.connect(self.haptic_click)
             self.reset.clicked.connect(self.reset_click)
             self.turn_off.clicked.connect(self.turn_off_board_click)
             self.turn_on.clicked.connect(self.turn_on_board_click)
@@ -477,19 +481,27 @@ elif choose == ("GUI"):
             self.show()
     
         def calculate_and_move_trap(self):
-            global phi, angle
-            
+            global phi, angle, haptic_toggle
+            t1 = time.time()
             phi_focus = phase_algorithms.phase_find(rt,x,y,z)
-            phi = phase_algorithms.add_twin_signature(rt,phi_focus, angle)
- 
-                            
+            t2 = time.time()
+            # Making it so if haptic is on it will only focus and if its off it will add the pattern
+            if haptic_toggle == False:
+                phi = phase_algorithms.add_twin_signature(rt,phi_focus, angle)
+            else:
+                phi = phi_focus
+            t3 = time.time()
+            print("T1 = :", t2-t1)
+            print("T2 = :", t3-t2)
+            t4 = time.time()
             for i in range(88):
                 # Send offset commands
                 command = Functions.create_board_command_offset(board, i, phi[i])
                 reply = self.com.send_json(command)
                 if reply["Status"] != "Success":
                     raise Exception("Failed to start conversion", reply)
-                    
+            t5 = time.time()  
+            print("T3 = :", t5-t4)
             # Send load offset command
             command = Functions.create_board_command_load_offsets(board)
             reply = self.com.send_json(command)
@@ -498,16 +510,18 @@ elif choose == ("GUI"):
 
         
         def turn_off_board_click(self):
+            global haptic_toggle
             print("Board off")
-   
+            haptic_toggle = False
             command_power = Functions.create_board_command_power(board, 0)
             reply_power = self.com.send_json(command_power)
             if reply_power["Status"] != "Success":
                 raise Exception("Failed to start conversion 2", reply_power)
 
         def turn_on_board_click(self):
+            global haptic_toggle
             print("Board on")
-       
+            haptic_toggle = False
             command_power = Functions.create_board_command_power(board, 511)
             reply_power = self.com.send_json(command_power)
             if reply_power["Status"] != "Success":
@@ -526,55 +540,87 @@ elif choose == ("GUI"):
         def forward_click(self):
             global x, angle  
             angle = 0
-            x += 0.001
+            if haptic_toggle:
+                x += 0.01
+            else:
+                x += 0.001
             self.calculate_and_move_trap()
             print('x changed to = ', "%.3f" % x)
         
         def backward_click(self):
             global x, angle  
             angle = 0
-            x -= 0.001
+            if haptic_toggle:
+                x -= 0.01
+            else:
+                x -= 0.001
             self.calculate_and_move_trap()
             print('x changed to = ', "%.3f" % x)
             
         def left_click(self):
             global y, angle  
             angle = 90
-            y += 0.001
+            if haptic_toggle:
+                y += 0.01
+            else:
+                y += 0.001
             self.calculate_and_move_trap()
             print('y changed to = ', "%.3f" % y)
             
         def right_click(self):
             global y, angle  
             angle = 90
-            y -= 0.001
+            if haptic_toggle:
+                y -= 0.01
+            else:
+                y -= 0.001
             self.calculate_and_move_trap()
             print('y changed to = ', "%.3f" % y)
             
         def up_click(self):
-            global z 
-            z += 0.001
+            global z
+            if haptic_toggle:
+                z += 0.01
+            else:
+                z += 0.001
             self.calculate_and_move_trap()
             print('z changed to = ', "%.3f" % z)
             
         def down_click(self):
-            global z 
-            z -= 0.001
+            global z
+            if haptic_toggle:
+                 z -= 0.01
+            else:
+                z -= 0.001
             self.calculate_and_move_trap()
             print('z changed to = ', "%.3f" % z)
             
-        def fuzz_click(self):
-            print(' ')
-            print('Fuzzing for 10 seconds')
-            self.calculate_and_move_trap_no_print()
-            time.sleep(10)
-            print(' ')
-            self.calculate_and_move_trap()
-            print('Finished Fuzzing')
+        def haptic_click(self):
+            global haptic_toggle
+            if haptic_toggle == False:
+                print('Haptic mode activated')
+                # Send Power setting command
+                command_power = Functions.create_board_command_power(board, 256)
+                reply_power = self.com.send_json(command_power)
+                if reply_power["Status"] != "Success":
+                    raise Exception("Failed to start conversion 2", reply_power)
+                    
+                # Send Frequency command 
+                #command_freq = Functions.create_board_command_divisor(board, 512)
+                command_freq = Functions.create_board_command_freq(board, 200)
+                reply_freq = self.com.send_json(command_freq)
+                if reply_freq["Status"] != "Success":
+                    raise Exception("Failed to start conversion 2", reply_freq)
+                haptic_toggle = True
+            else:
+                print('Haptic mode De-activated')
+                haptic_toggle = False
+                self.turn_on_board_click()
             
         def reset_click(self):
             global x,y,z
             x = 0; y = 0; z = 0.02;
+            self.calculate_and_move_trap()
             print(' ')
             print('Reset to [0, 0, 0.02]')
     
