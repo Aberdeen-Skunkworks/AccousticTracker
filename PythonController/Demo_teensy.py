@@ -93,7 +93,7 @@ elif choose == ("h"):
             
         # Send Frequency command 
         #command_freq = Functions.create_board_command_divisor(board, 512)
-        command_freq = Functions.create_board_command_freq(board, 500)
+        command_freq = Functions.create_board_command_freq(board, 200)
         reply_freq = com.send_json(command_freq)
         if reply_freq["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_freq)
@@ -491,8 +491,8 @@ elif choose == ("GUI"):
             else:
                 phi = phi_focus
             t3 = time.time()
-            print("T1 = :", t2-t1)
-            print("T2 = :", t3-t2)
+            #print("T1 = :", t2-t1)
+            #print("T2 = :", t3-t2)
             t4 = time.time()
             for i in range(88):
                 # Send offset commands
@@ -501,7 +501,7 @@ elif choose == ("GUI"):
                 if reply["Status"] != "Success":
                     raise Exception("Failed to start conversion", reply)
             t5 = time.time()  
-            print("T3 = :", t5-t4)
+            #print("T3 = :", t5-t4)
             # Send load offset command
             command = Functions.create_board_command_load_offsets(board)
             reply = self.com.send_json(command)
