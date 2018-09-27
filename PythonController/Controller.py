@@ -34,20 +34,22 @@ class Controller():
         while reply == b"":
             reply = self.com.readline()
         try:
-            json_reply = json.loads(reply)
+            json_reply = json.loads(reply.decode("utf-8"))
             if "Status" not in json_reply:
                 return json.loads({"Status":"Fail", "Error":"No status in the returned JSON", "Reply":json_reply})
             return json_reply
-        except:
-            return {"Status":"Fail", "Error":"Could not parse reply string", "Reply":reply}
+        except Exception as e:
+            return {"Status":"Fail", "Error":"Could not parse reply string", "Reply":reply, "exception":str(e)}
         
     def __enter__(self):
+        self.com = None
         for port in self.serial_ports():
             print("Trying port " + str(port)+" ", end="")
             self.com = serial.Serial(port=port, baudrate=500000000, timeout=0.01)
             reply = self.send_json({"CMD":0})
             if reply["Status"] != "Success":
                 print("Failed! " + repr(reply))
+                self.com = None
                 continue
             print("Success! Arduino compiled at",reply["CompileTime"])
             break
@@ -74,9 +76,10 @@ class Controller():
             ports = ['COM%s' % (i + 1) for i in range(256)]
         elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
             # this excludes your current terminal "/dev/tty"
-            ports = glob.glob('/dev/tty[A-Za-z]*')
+            ports= glob.glob('/dev/tty[A-Za-z]*')
         elif sys.platform.startswith('darwin'):
             ports = glob.glob('/dev/tty.*')
+            print("darwin", ports)
         else:
             raise EnvironmentError('Unsupported platform')
     
