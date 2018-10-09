@@ -1,22 +1,8 @@
 #include "DMAChannel.h"
 #include "ADC.h"
-#include <ArduinoJson.h>
-#include <OneWire.h>
-#include <DallasTemperature.h>
-#include "stdio.h"
-#include "math.h"
-#define HWSERIAL_1 Serial5
-#define HWSERIAL_2 Serial4
 
 #define ADC_conv_speed ADC_CONVERSION_SPEED::LOW_SPEED    //VERY_HIGH_SPEED
 #define ADC_samp_speed ADC_SAMPLING_SPEED::VERY_HIGH_SPEED
-
-// Temperature reading digital pin number
-#define ONE_WIRE_BUS 14
-// Setup one wire communications
-OneWire oneWire(ONE_WIRE_BUS);
-// Pass our oneWire reference to Dallas Temperature.
-DallasTemperature sensors(&oneWire);
 
 //The size of the DMA/ADC buffers. Sizes above 512 don't seem to work, which the datasheet agrees with if the DMA channels are in ELINK mode, which they must be.
 #define BUF_SIZE 512
@@ -33,13 +19,152 @@ DMAMEM static volatile uint16_t ChannelsCfg_1 [] =  { 0x45, 0x46, 0x47, 0x44 }; 
 volatile uint32_t output_adcbuffer_0[BUF_SIZE];
 volatile uint32_t output_adcbuffer_1[BUF_SIZE];
 
-
 //Create the ADC and DMA controller objects
 ADC *adc = new ADC(); // adc object
 DMAChannel* dma0 = new DMAChannel(false);
 DMAChannel* dma1 = new DMAChannel(false);
 DMAChannel* dma2 = new DMAChannel(false);
 DMAChannel* dma3 = new DMAChannel(false);
+
+void setup_dma() {
+  //This sets up the DMA controllers to run the ADCs and transfer out the data
+  //dma0/dma2 are responsible for copying out the ADC results when ADC0/ADC1 finishes
+  //dma1/dma3 then copy a new configuration into the ADC after dma0/dma2 completes its copy. This allows us to change the pin being read, but also starts the next ADC conversion.
+
+  dma0->begin(true);                 // allocate the DMA channel (there are many, this just grabs the first free one)
+  dma0->TCD->SADDR = &ADC0_RA;       // where to read from (the ADC result register)
+  dma0->TCD->SOFF = 0;               // source increment each transfer (0=Don't move from the ADC result)
+  dma0->TCD->ATTR = 0x101;           // [00000][001][00000][001] [Source Address Modulo=off][Source data size=1][Destination address modulo=0][Destination size=1] pg 554  Used for circular buffers, not needed here
+  dma0->TCD->NBYTES = 2;             // bytes per transfer
+  dma0->TCD->SLAST = 0;              // Last source Address adjustment (what adjustment to add to the source address at completion of the major iteration count), again, don't move
+  dma0->TCD->DADDR = &adcbuffer_0[0];// Destination ADDRess (where to write to)
+  dma0->TCD->DOFF = 2;               // Destination address signed OFFset, how to update the destination after each write, 2 bytes as its a 16bit int
+  dma0->TCD->DLASTSGA = -2 * BUF_SIZE; //Destination LAST adjustment, adjustment to make at the completion of the major iteration count.
+  dma0->TCD->BITER = BUF_SIZE;       // Starting major iteration count (should be the value of CITER)
+  dma0->TCD->CITER = BUF_SIZE;       // Current major iteration count (decremented each time the minor loop is completed)
+  dma0->triggerAtHardwareEvent(DMAMUX_SOURCE_ADC0);
+  dma0->disableOnCompletion();       // require restart of the DMA engine in code
+  dma0->interruptAtCompletion();     // Call an interrupt when done
+  dma0->attachInterrupt(dma0_isr);   // This is the interrupt to call
+
+  dma1->begin(true);              // allocate the DMA channel
+  dma1->TCD->SADDR = &ChannelsCfg_0[0];
+  dma1->TCD->SOFF = 2;            // source increment each transfer (n bytes)
+  dma1->TCD->ATTR = 0x101;
+  dma1->TCD->SLAST = -8;          // num ADC0 samples * 2
+  dma1->TCD->BITER = 4;           // num of ADC0 samples
+  dma1->TCD->CITER = 4;           // num of ADC0 samples
+  dma1->TCD->DADDR = &ADC0_SC1A;  // By writing to the ADC0_SC1A register, a new conversion is started.
+  dma1->TCD->DLASTSGA = 0;
+  dma1->TCD->NBYTES = 2;
+  dma1->TCD->DOFF = 0;
+  dma1->triggerAtTransfersOf(*dma0);
+  dma1->triggerAtCompletionOf(*dma0);
+
+  dma2->begin(true);              // allocate the DMA channel
+  dma2->TCD->SADDR = &ADC1_RA;    // where to read from
+  dma2->TCD->SOFF = 0;            // source increment each transfer
+  dma2->TCD->ATTR = 0x101;
+  dma2->TCD->NBYTES = 2;     // bytes per transfer
+  dma2->TCD->SLAST = 0;
+  dma2->TCD->DADDR = &adcbuffer_1[0];// where to write to
+  dma2->TCD->DOFF = 2;
+  dma2->TCD->DLASTSGA = -2 * BUF_SIZE;
+  dma2->TCD->BITER = BUF_SIZE;
+  dma2->TCD->CITER = BUF_SIZE;
+  dma2->triggerAtHardwareEvent(DMAMUX_SOURCE_ADC1);
+  dma2->disableOnCompletion();    // require restart in code
+  dma2->interruptAtCompletion();
+  dma2->attachInterrupt(dma2_isr);
+
+  dma3->begin(true);              // allocate the DMA channel
+  dma3->TCD->SADDR = &ChannelsCfg_1[0];
+  dma3->TCD->SOFF = 2;            // source increment each transfer (n bytes)
+  dma3->TCD->ATTR = 0x101;
+  dma3->TCD->SLAST = -8;          // num ADC1 samples * 2
+  dma3->TCD->BITER = 4;           // num of ADC1 samples
+  dma3->TCD->CITER = 4;           // num of ADC1 samples
+  dma3->TCD->DADDR = &ADC1_SC1A;
+  dma3->TCD->DLASTSGA = 0;
+  dma3->TCD->NBYTES = 2;
+  dma3->TCD->DOFF = 0;
+  dma3->triggerAtTransfersOf(*dma2);
+  dma3->triggerAtCompletionOf(*dma2);
+
+  dma1->enable();
+  dma3->enable();
+}
+
+void setup_adc() {
+  //ADC0
+  adc->setAveraging(0, ADC_0); // set number of averages
+  adc->adc0->setResolution(12); // set bits of resolution
+  adc->setConversionSpeed(ADC_conv_speed, ADC_0); // change the conversion speed
+  adc->setSamplingSpeed(ADC_samp_speed, ADC_0); // change the sampling speed
+  adc->adc0->setReference(ADC_REFERENCE::REF_3V3);
+
+  //ADC1
+  adc->setAveraging(0, ADC_1); // set number of averages
+  adc->adc1->setResolution(12); // set bits of resolution
+  adc->setConversionSpeed(ADC_conv_speed, ADC_1); // change the conversion speed
+  adc->setSamplingSpeed(ADC_samp_speed, ADC_1); // change the sampling speed
+  adc->adc1->setReference(ADC_REFERENCE::REF_3V3);
+
+  ADC1_CFG2 |= ADC_CFG2_MUXSEL;
+
+  adc->adc0->enableDMA(); //ADC0_SC2 |= ADC_SC2_DMAEN;  // using software trigger, ie writing to ADC0_SC1A
+  adc->adc1->enableDMA();
+
+}
+
+volatile int dma0_repeats = 0;
+volatile int dma2_repeats = 0;
+//This callback is called whenever a DMA channel has completed all BUF_SIZE reads from its ADC. It resets the DMA controller back to the start clears the interrupt.
+void dma0_isr(void) {
+  dma0->clearInterrupt();
+  dma0->TCD->DADDR = &adcbuffer_0[0];
+  //Uncomment below if you want the ADC to continuously sample the pin.
+  if (dma0_repeats > 0) {
+    dma0->enable();
+    --dma0_repeats;
+  }
+}
+//Exactly the same as dma0_isr, but for dma 2
+void dma2_isr(void) {
+  dma2->clearInterrupt();
+  dma2->TCD->DADDR = &adcbuffer_1[0];
+  if (dma2_repeats > 0) {
+    dma2->enable();
+    --dma2_repeats;
+  }
+}
+
+void runDMAADC() {
+ //Disable interrupts to make sure that the two dma's are started with the minimum delay
+ noInterrupts();
+ dma0->enable();
+ dma2->enable();
+ interrupts(); //Re-enable interrupts, as we need em for the DMA!
+
+ //Now wait till the DMA is complete
+ while (!dma0->complete() || !dma2->complete()) {}
+}
+
+#include <ArduinoJson.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
+#include "stdio.h"
+#include "math.h"
+#define HWSERIAL_1 Serial5
+#define HWSERIAL_2 Serial4
+
+// Temperature reading digital pin number
+#define ONE_WIRE_BUS 14
+// Setup one wire communications
+OneWire oneWire(ONE_WIRE_BUS);
+// Pass our oneWire reference to Dallas Temperature.
+DallasTemperature sensors(&oneWire);
+
 
 // Set a bool for the transducer communication functions to set to false if they detect an error.
 volatile bool baord_error = false;
@@ -86,7 +211,6 @@ IntervalTimer pwm_timer;
 //The number of times a sample is repeated when a sample command is sent (The division will be performed externally)
 volatile int repetitions = 1;
 
-
 //This is the callback, called by pwm_timer.
 void pwm_isr(void) {
 
@@ -119,28 +243,6 @@ void pwm_isr(void) {
     digitalWrite(pwm_pin, false);
     digitalWrite(pwm_pin_low, false);
     pwm_timer.end();
-  }
-}
-volatile int dma0_repeats = 0;
-volatile int dma2_repeats = 0;
-//This callback is called whenever a DMA channel has completed all BUF_SIZE reads from its ADC. It resets the DMA controller back to the start clears the interrupt.
-void dma0_isr(void) {
-  dma0->clearInterrupt();
-  dma0->TCD->DADDR = &adcbuffer_0[0];
-  //Uncomment below if you want the ADC to continuously sample the pin.
-  if (dma0_repeats > 0) {
-	  dma0->enable();
-	  --dma0_repeats;
-  }
-}
-
-//Exactly the same as dma0_isr
-void dma2_isr(void) {
-  dma2->clearInterrupt();
-  dma2->TCD->DADDR = &adcbuffer_1[0];
-  if (dma2_repeats > 0) {
-	  dma2->enable();
-	  --dma2_repeats;
   }
 }
 
@@ -472,12 +574,8 @@ void loop() {
               __asm__("nop\n\t");
             };
           }
-          noInterrupts();
-          dma0->enable();
-          dma2->enable();
-          interrupts();
-
-          while (!dma0->complete() || !dma2->complete()) {}
+          
+          runDMAADC();
 
           for (int i = 0; i < BUF_SIZE; i = i + 1) {
             output_adcbuffer_0[i] += adcbuffer_0[i];
@@ -729,95 +827,4 @@ default: {
 digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
 }
 
-void setup_dma() {
-  //This sets up the DMA controllers to run the ADCs and transfer out the data
-  //dma0/dma2 are responsible for copying out the ADC results when ADC0/ADC1 finishes
-  //dma1/dma3 then copy a new configuration into the ADC after dma0/dma2 completes its copy. This allows us to change the pin being read, but also starts the next ADC conversion.
-
-
-  dma0->begin(true);                 // allocate the DMA channel (there are many, this just grabs the first free one)
-  dma0->TCD->SADDR = &ADC0_RA;       // where to read from (the ADC result register)
-  dma0->TCD->SOFF = 0;               // source increment each transfer (0=Don't move from the ADC result)
-  dma0->TCD->ATTR = 0x101;           // [00000][001][00000][001] [Source Address Modulo=off][Source data size=1][Destination address modulo=0][Destination size=1] pg 554  Used for circular buffers, not needed here
-  dma0->TCD->NBYTES = 2;             // bytes per transfer
-  dma0->TCD->SLAST = 0;              // Last source Address adjustment (what adjustment to add to the source address at completion of the major iteration count), again, don't move
-  dma0->TCD->DADDR = &adcbuffer_0[0];// Destination ADDRess (where to write to)
-  dma0->TCD->DOFF = 2;               // Destination address signed OFFset, how to update the destination after each write, 2 bytes as its a 16bit int
-  dma0->TCD->DLASTSGA = -2 * BUF_SIZE; //Destination LAST adjustment, adjustment to make at the completion of the major iteration count.
-  dma0->TCD->BITER = BUF_SIZE;       // Starting major iteration count (should be the value of CITER)
-  dma0->TCD->CITER = BUF_SIZE;       // Current major iteration count (decremented each time the minor loop is completed)
-  dma0->triggerAtHardwareEvent(DMAMUX_SOURCE_ADC0);
-  dma0->disableOnCompletion();       // require restart of the DMA engine in code
-  dma0->interruptAtCompletion();     // Call an interrupt when done
-  dma0->attachInterrupt(dma0_isr);   // This is the interrupt to call
-
-  dma1->begin(true);              // allocate the DMA channel
-  dma1->TCD->SADDR = &ChannelsCfg_0[0];
-  dma1->TCD->SOFF = 2;            // source increment each transfer (n bytes)
-  dma1->TCD->ATTR = 0x101;
-  dma1->TCD->SLAST = -8;          // num ADC0 samples * 2
-  dma1->TCD->BITER = 4;           // num of ADC0 samples
-  dma1->TCD->CITER = 4;           // num of ADC0 samples
-  dma1->TCD->DADDR = &ADC0_SC1A;  // By writing to the ADC0_SC1A register, a new conversion is started.
-  dma1->TCD->DLASTSGA = 0;
-  dma1->TCD->NBYTES = 2;
-  dma1->TCD->DOFF = 0;
-  dma1->triggerAtTransfersOf(*dma0);
-  dma1->triggerAtCompletionOf(*dma0);
-
-  dma2->begin(true);              // allocate the DMA channel
-  dma2->TCD->SADDR = &ADC1_RA;    // where to read from
-  dma2->TCD->SOFF = 0;            // source increment each transfer
-  dma2->TCD->ATTR = 0x101;
-  dma2->TCD->NBYTES = 2;     // bytes per transfer
-  dma2->TCD->SLAST = 0;
-  dma2->TCD->DADDR = &adcbuffer_1[0];// where to write to
-  dma2->TCD->DOFF = 2;
-  dma2->TCD->DLASTSGA = -2 * BUF_SIZE;
-  dma2->TCD->BITER = BUF_SIZE;
-  dma2->TCD->CITER = BUF_SIZE;
-  dma2->triggerAtHardwareEvent(DMAMUX_SOURCE_ADC1);
-  dma2->disableOnCompletion();    // require restart in code
-  dma2->interruptAtCompletion();
-  dma2->attachInterrupt(dma2_isr);
-
-  dma3->begin(true);              // allocate the DMA channel
-  dma3->TCD->SADDR = &ChannelsCfg_1[0];
-  dma3->TCD->SOFF = 2;            // source increment each transfer (n bytes)
-  dma3->TCD->ATTR = 0x101;
-  dma3->TCD->SLAST = -8;          // num ADC1 samples * 2
-  dma3->TCD->BITER = 4;           // num of ADC1 samples
-  dma3->TCD->CITER = 4;           // num of ADC1 samples
-  dma3->TCD->DADDR = &ADC1_SC1A;
-  dma3->TCD->DLASTSGA = 0;
-  dma3->TCD->NBYTES = 2;
-  dma3->TCD->DOFF = 0;
-  dma3->triggerAtTransfersOf(*dma2);
-  dma3->triggerAtCompletionOf(*dma2);
-
-  dma1->enable();
-  dma3->enable();
-}
-
-void setup_adc() {
-  //ADC0
-  adc->setAveraging(0, ADC_0); // set number of averages
-  adc->adc0->setResolution(12); // set bits of resolution
-  adc->setConversionSpeed(ADC_conv_speed, ADC_0); // change the conversion speed
-  adc->setSamplingSpeed(ADC_samp_speed, ADC_0); // change the sampling speed
-  adc->adc0->setReference(ADC_REFERENCE::REF_3V3);
-
-  //ADC1
-  adc->setAveraging(0, ADC_1); // set number of averages
-  adc->adc1->setResolution(12); // set bits of resolution
-  adc->setConversionSpeed(ADC_conv_speed, ADC_1); // change the conversion speed
-  adc->setSamplingSpeed(ADC_samp_speed, ADC_1); // change the sampling speed
-  adc->adc1->setReference(ADC_REFERENCE::REF_3V3);
-
-  ADC1_CFG2 |= ADC_CFG2_MUXSEL;
-
-  adc->adc0->enableDMA(); //ADC0_SC2 |= ADC_SC2_DMAEN;  // using software trigger, ie writing to ADC0_SC1A
-  adc->adc1->enableDMA();
-
-}
 
