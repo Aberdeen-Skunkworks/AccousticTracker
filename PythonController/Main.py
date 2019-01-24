@@ -577,7 +577,19 @@ elif choose == ("3"):
             ax2.set_ylim([-100, 100])
             ax2.set_zlim([-100, 100])
 
-         
+
+
+
+
+## ---------------------- New board test --------------------- ##
+    
+elif choose == ("4"):
+    
+    with Controller() as com:
+        command = {"CMD":2, "ADC0Channels":[14,14,14,14], "ADC1Channels":[39,39,39,39]}
+        
+        adc_0_output, adc_1_output = read_voltages_two_pins_fastest(command, 1, com, 1)
+        
 ## ----------------------  Debugging and test mode --------------------- ##
 
 elif choose == ("-1"):

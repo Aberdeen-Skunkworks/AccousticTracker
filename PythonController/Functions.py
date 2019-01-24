@@ -91,6 +91,8 @@ def target_wave():
                                  
 def digital_pin_to_sc1a(ADC, pin):
     """
+    Redundant as the teensy does this now
+    
     Function to take in which ADC you want to use on the teensy and a digital output pin number and returns the sc1a number that the ADC uses to label the pins
     It will raise an exeption if an invalid pin is chosen or invalid ADC number.
     """
@@ -149,10 +151,10 @@ def read_voltages_two_pins_fastest(command, adc_resolution, com, repetitions):
     """
     
     # Check that all ADC channels are the same for each ADC in the command
-    ADC0_channels = command["ADC0Channels"]
+    #ADC0_channels = command["ADC0Channels"]
     ADC1_channels = command["ADC1Channels"]
-    for i in range(len(ADC0_channels)):
-        if ADC0_channels[0] != ADC0_channels[i] or ADC1_channels[0] != ADC1_channels[i]:
+    for i in range(len(ADC1_channels)):
+        if ADC1_channels[0] != ADC1_channels[i]:
             raise Exception("This mode requires all channels of each individual ADC to be the same")
             
     # Send commands to the teensy board using json and check if the correct response is recieved
@@ -166,12 +168,12 @@ def read_voltages_two_pins_fastest(command, adc_resolution, com, repetitions):
     adc_0_output=[]
     i = 0
     
-    while i < len(reply["ResultADC0"]):
-        adc_0_output.append(reply["ResultADC0"][i])
-        adc_0_output.append(reply["ResultADC0"][i+1])
-        adc_0_output.append(reply["ResultADC0"][i+2])
-        adc_0_output.append(reply["ResultADC0"][i+3])
-        i += 4
+#    while i < len(reply["ResultADC0"]):
+#        adc_0_output.append(reply["ResultADC0"][i])
+#        adc_0_output.append(reply["ResultADC0"][i+1])
+#        adc_0_output.append(reply["ResultADC0"][i+2])
+#        adc_0_output.append(reply["ResultADC0"][i+3])
+#        i += 4
 
     adc_1_output=[]
     i = 0
@@ -183,7 +185,7 @@ def read_voltages_two_pins_fastest(command, adc_resolution, com, repetitions):
         i += 4
         
     # Divide out the repitions so that the average output of the teensys multiple samples is outputed by this function        
-    return np.divide(adc_0_output, repetitions), np.divide(adc_1_output, repetitions)
+    return np.divide(adc_0_output, repetitions), np.divide(adc_1_output, repetitions), reply
 
 
 
@@ -350,7 +352,9 @@ def find_samples_per_wave():
             return samples_per_wave, time_per_sample
         
 def find_speed_of_sound():
-    temp = find_temperature()
+    #temp = find_temperature()
+    # fudged temperature
+    temp = 21
     if temp < 10 or temp > 30:
         raise Exception("Temperature reading is either quite high or low are you sure this is correct? if so adjust this checking function", temp, "Degrees C")
     else:
