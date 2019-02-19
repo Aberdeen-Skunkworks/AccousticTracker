@@ -251,7 +251,6 @@ void pwm_isr(void) {
 }
 
 void sendCmd(byte bytearray[3], int board) {
-
 	// Define the reply data structue
 	byte FPGA_reply[3];
 
@@ -548,11 +547,6 @@ void loop() {
           output_adcbuffer_1[i] = 0;
         }
 
-		Serial.print("Got here");
-		digitalWrite(9, HIGH);
-		delay(100)
-		digitalWrite(9, LOW);
-
 		runDMAADC();
 
 		for (int i = 0; i < BUF_SIZE; i = i + 1) {
@@ -603,7 +597,7 @@ void loop() {
         break;
       }
     case 4: {
-        //Measure how long a ADC sample run takes
+        //Measure how long a for loop takes
         elapsedMicros waiting;
         for (int i = 0; i < 46080; i = i + 1) { // Mesure how long it takes to do a for loop (three instructions)then 1 nop (one instruction)
           __asm__("nop\n\t");
@@ -802,5 +796,3 @@ default: {
 
 digitalWrite(ledPin, !digitalRead(ledPin));   //Toggle
 }
-
-
