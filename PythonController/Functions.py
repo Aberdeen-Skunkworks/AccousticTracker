@@ -99,12 +99,12 @@ def digital_pin_to_sc1a(ADC, pin):
     if ADC == 0:
     
         # Index is digital pin - value is sc1a number
-        sc1a = [None , None , None , None , None , None , None , None , None , None , 
-        None , None , None , None , 5 , 14 , 8 , 9 , 13 , 12 , 6 , 7 , 15 , 4 , None , 
-        None , None , None , None , None , None , None , None , 17 , 18 , None , None , 
-        None , None , None , None , None , None , None , None , None , None , None , None , 
-        None , None , None , None , None , None , None , None , None , None , None , None , 
-        None , None , None , 3 , None , 23 , None , 1 , None , 26]
+        sc1a = {-1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , 
+        -1 , -1 , -1 , -1 , 5 , 14 , 8 , 9 , 13 , 12 , 6 , 7 , 15 , 4 , -1 , 
+        -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , 17 , 18 , -1 , -1 , 
+        -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , 
+        -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , 
+        -1 , -1 , -1 , 3 , -1 , 23 , -1 , 1 , -1 , 26}
         
         if pin > len(sc1a):
             raise Exception("Error: Please choose valid digital pin less than 70")
@@ -116,12 +116,12 @@ def digital_pin_to_sc1a(ADC, pin):
 
     elif ADC == 1:
         # Index is digital pin - value is sc1a number  (Added 8 and 9 manually)
-        sc1a = [None , None , None , None , None , None , None , None , None , None , 
-        None , None , None , None , None , None , 8 , 9 , None , None , None , None , 
-        None , None , None , None , None , None , None , None , None , 14 , 15 , None , 
-        None , 4 , 5 , 6 , 7 , 17 , None , None , None , None , None , None , None , None , 
-        None , 10 , 11 , None , None , None , None , None , None , None , None , None , None , 
-        None , None , None , None , 19 , None , 23 , None , 1 , None , 18]
+        sc1a = {-1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , 
+        -1 , -1 , -1 , -1 , -1 , -1 , 8 , 9 , -1 , -1 , -1 , -1 , 
+        -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , 14 , 15 , -1 , 
+        -1 , 4 , 5 , 6 , 7 , 17 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , 
+        -1 , 10 , 11 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , -1 , 
+        -1 , -1 , -1 , -1 , 19 , -1 , 23 , -1 , 1 , -1 , 18}
         
         if pin > len(sc1a):
             raise Exception("Error: Please choose valid digital pin less than 71")
