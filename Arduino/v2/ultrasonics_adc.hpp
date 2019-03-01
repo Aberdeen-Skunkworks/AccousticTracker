@@ -11,21 +11,9 @@
 DMAMEM static volatile uint16_t __attribute__((aligned(BUF_SIZE + 0))) adcbuffer_0[BUF_SIZE];
 DMAMEM static volatile uint16_t __attribute__((aligned(BUF_SIZE + 0))) adcbuffer_1[BUF_SIZE];
 
+//Table which converts pins to ADC SCA1 control indexes for the Teensy 3.6
 //Taken from the teensyduino https://github.com/PaulStoffregen/cores/blob/master/teensy3/analog.c#L412, digital pin to sc1a channel
-// 255 denotes no ADC connection.
-//  if (channel & 0x80) then its on ADC1 instead of adc 0 (0x80 is 128)
-//  (Only digital pins 16 and 17 are multiplexed between both ADCs)
-//
-//  channel = pin2sc1a[pin];
-//  if (channel == 255) return 0;
-//
-// ADC1_CFG2[MUXSEL] bit selects between ADCx_SEn channels a and b.
-//  if (channel & 0x40) {
-//    ADC1_CFG2 &= ~ADC_CFG2_MUXSEL;
-//  } else {
-//    ADC1_CFG2 |= ADC_CFG2_MUXSEL;
-//  }
-//  ADC1_SC1A = channel & 0x3F;
+//255 denotes no ADC connection
 static const uint8_t mcb_pin2sc1a[] = {
   5, 14, 8, 9, 13, 12, 6, 7, 15, 4, 3, 19+128, 14+128, 15+128, // 0-13 -> A0-A13
   5, 14, 8, 9, 13, 12, 6, 7, 15, 4, // 14-23 are A0-A9
@@ -42,7 +30,9 @@ static const uint8_t mcb_pin2sc1a[] = {
   18+128     // 71 is Vref
 };
 
-uint8_t setupDigitalPinForADC(uint8_t pin, uint8_t ADC_n) {
+//This returns the lower 6 bits of the SC1A ADC register used to select the correct channel for a digital pin on the Teensy 3.6.
+//It should be noted that if using ADC1, then an additional MUX option may need to be set, see adc1_setmux to carry this out.
+uint8_t adc_pin2sc1a(uint8_t pin, uint8_t ADC_n) {
   if (ADC_n > 1) return 0; //Check a valid ADC was given
   if (pin >= sizeof(mcb_pin2sc1a)) return 0; //Check its a valid pin number
   
@@ -50,34 +40,26 @@ uint8_t setupDigitalPinForADC(uint8_t pin, uint8_t ADC_n) {
   if (channel == 255) return 0; //Its not available to the ADC so return fail
   if ((channel & 0x80) && (ADC_n != 1)) return 0; //Check the pin is indeed on the correct ADC
 
+  if (!(channel & 0x80))
+    return channel; //Its ADC0, so return the channel
+
+  //Its ADC1 so return the lower bits
+  return channel & 0x3F;
 }
 
-//  if (pin >= sizeof(pin2sc1a)) return 0;
-//  channel = pin2sc1a[pin];
-//  if (channel == 255) return 0;
+uint8_t adc1_setmux(uint8_t pin) {
+  if (pin >= sizeof(mcb_pin2sc1a)) return 0; //Check its a valid pin number
+  uint8_t channel = mcb_pin2sc1a[pin]; //Grab the allocated pin
+  if (channel == 255) return 0; //Its not available to the ADC so return fail
+  if (!(channel & 0x80)) return 0; //This is only valid for ADC1
 
-int digital_pin_to_sc1a(int digital_pin, int adc_number) {
-  if (adc_number == 0) {
-    int sc1a[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 5, 14, 8, 9, 13, 12, 6, 7, 15, 4, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 17, 18, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-      0, 0, 0, 3, 0, 23, 0, 1, 0, 26};
-    return sc1a[digital_pin];
+// ADC1_CFG2[MUXSEL] bit selects between ADCx_SEn channels a and b.
+  if (channel & 0x40) {
+    ADC1_CFG2 &= ~ADC_CFG2_MUXSEL;
+  } else {
+    ADC1_CFG2 |= ADC_CFG2_MUXSEL;
   }
-  if (adc_number == 1) {
-    int sc1a[] = { 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-      0 , 0 , 0 , 0 , 0 , 0 , 8 , 9 , 0 , 0 , 0 , 0 ,
-      0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 14 , 15 , 0 ,
-      0 , 4 , 5 , 6 , 7 , 17 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-      0 , 10 , 11 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 , 0 ,
-      0 , 0 , 0 , 0 , 19 , 0 , 23 , 0 , 1 , 0 , 18 };
-    return sc1a[digital_pin];
-  }
-  else {
-    return(-1);
-  }
+  return channel;
 }
 
 //ChannelsCfg order must be {CH1, CH2, CH3, CH0 }, adcbuffer output will be CH0, CH1, CH2, CH3

@@ -103,7 +103,8 @@ void pwm_isr(void) {
 }
 
 void sendCmd(byte bytearray[3], int board) {
-
+  if ((board == 0) || (board > 2)) return; //Exit if an invalid board number is used
+   
 	// Define the reply data structue
 	byte FPGA_reply[3];
 
@@ -112,7 +113,7 @@ void sendCmd(byte bytearray[3], int board) {
 	if (board == 1) {
 		HWSERIAL_1.clear();
 	}
-	else if (board == 2) {
+	else {
 		HWSERIAL_2.clear();
 	}
 
@@ -123,7 +124,7 @@ void sendCmd(byte bytearray[3], int board) {
 	if (board == 1) {
 		HWSERIAL_1.write(bytearray, 3);
 	}
-	else if (board == 2) {
+	else {
 		HWSERIAL_2.write(bytearray, 3);
 	}
 
@@ -140,7 +141,7 @@ void sendCmd(byte bytearray[3], int board) {
 		FPGA_reply[1] = HWSERIAL_1.read();
 		FPGA_reply[2] = HWSERIAL_1.read();
 	}
-	else if (board == 2) {
+	else {
 		FPGA_reply[0] = HWSERIAL_2.read();
 		FPGA_reply[1] = HWSERIAL_2.read();
 		FPGA_reply[2] = HWSERIAL_2.read();
@@ -260,7 +261,7 @@ void loadOffsets(int board) {
 
 int getonewordreply(byte bytearray[3], int board) {
 	// Define the reply data type
-	int FPGA_reply;
+	int FPGA_reply = -1;
 	// Send the command to the FPGA and read the reply byte
 	sendCmd(bytearray, board);
 
@@ -275,7 +276,7 @@ int getonewordreply(byte bytearray[3], int board) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"Never recieved a reply from the FPGA\"}\n");
 		baord_error = true;
 	}
-	// Retuen the FPGA reply
+	// Return the FPGA reply
 	return FPGA_reply;
 }
 
@@ -427,10 +428,10 @@ void loop() {
 		//Start a capture/conversion
 		//First, load the channels to sample from the command, this automatically converts the digital pin number to SC1a numbers which the ADC requires
 		for (int i(0); i < 4; ++i) {
-			uint16_t SC1A_number_0 = digital_pin_to_sc1a(json_in_root["ADC0Channels"][i].as<uint16_t>(), 0);
-			ChannelsCfg_1[i] = 0x40 | SC1A_number_0;
-			uint16_t SC1A_number_1 = digital_pin_to_sc1a(json_in_root["ADC1Channels"][i].as<uint16_t>(), 1);
-			ChannelsCfg_1[i] = 0x40 | SC1A_number_1;
+			uint16_t SC1A_number_0 = adc_pin2sc1a(json_in_root["ADC0Channels"][i].as<uint16_t>(), 0);
+			ChannelsCfg_1[i] = 0x40 | SC1A_number_0; //the 0x40 is AIEN (interrupt enable)
+			uint16_t SC1A_number_1 = adc_pin2sc1a(json_in_root["ADC1Channels"][i].as<uint16_t>(), 1);
+			ChannelsCfg_1[i] = 0x40 | SC1A_number_1; //the 0x40 is AIEN (interrupt enable)
 		}
 		// clear output array before looping again
 		for (int i = 0; i < BUF_SIZE; ++i) {
@@ -493,8 +494,8 @@ void loop() {
 		//Start a capture/conversion
 		//First, load the channels to sample from the command, this automatically converts the digital pin number to SC1a numbers which the ADC requires
 		for (int i(0); i < 4; ++i) {
-			uint16_t SC1A_number_1 = digital_pin_to_sc1a(json_in_root["ADC1Channels"][i].as<uint16_t>(), 1);
-			ChannelsCfg_1[i] = 0x40 | SC1A_number_1;
+			uint16_t SC1A_number_1 = adc_pin2sc1a(json_in_root["ADC1Channels"][i].as<uint16_t>(), 1);
+			ChannelsCfg_1[i] = 0x40 | SC1A_number_1; //the 0x40 is AIEN (interrupt enable)
 		}
 
 		int repetitions_in = json_in_root["repetitions"];
