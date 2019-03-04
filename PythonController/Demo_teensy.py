@@ -6,7 +6,7 @@
 
 ## ----------------- Writing transducer locations to rt ------------------ ##
 import sys
-sys.path.insert(0, '../../Project-X/')
+
 import numpy as np; import transducer_placment; import matplotlib.pyplot as plt;
 import phase_algorithms; import math; import algorithms; import time; from PyQt5 import QtWidgets; 
 import sys; import Functions
