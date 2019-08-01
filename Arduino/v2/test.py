@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 from Controller import *
 
 with Controller() as com:

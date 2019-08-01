@@ -370,13 +370,17 @@ float time_for_nop_loop(void) {
 
 void loop() {
 	//Try to parse the JSON commands coming in via the serial port
-	DynamicJsonBuffer jsonBuffer;
-	JsonObject& json_in_root = jsonBuffer.parseObject(Serial, 2);
-	if (!json_in_root.success())
-		//Parsing failed, try again later
-		return;
+	DynamicJsonDocument jsonDoc(4096);
+  auto error = deserializeJson(jsonDoc, Serial);
+  if (error) {
+    //Don't print an error as this times out frequently
+    //Serial.print("{\"Status\":\"Fail\", \"Error\":\"");
+    //Serial.print(error.c_str());
+    //Serial.print("\"}\n");
+    return;
+  }
 
-	const JsonVariant& cmd = json_in_root["CMD"];
+	const JsonVariant& cmd = jsonDoc["CMD"];
 	if (!cmd.is<int>()) {
 		Serial.print("{\"Status\":\"Fail\", \"Error\":\"CMD is not a integer?\"}\n");
 		return;
@@ -385,11 +389,10 @@ void loop() {
 	switch (cmd.as<int>()) {
 	case 0: {
 		//CMD0 is a info request
-		jsonBuffer.clear(); //Save memory by clearing the jBuffer for reuse, we can't use json_in_root or anything from it after this though!
-		JsonObject& json_out_root = jsonBuffer.createObject();
+		JsonObject json_out_root = jsonDoc.as<JsonObject>();
 		json_out_root["Status"] = "Success";
 		json_out_root["CompileTime"] = __DATE__ " " __TIME__;
-		json_out_root.printTo(Serial);
+		serializeJson(json_out_root, Serial);
 		Serial.print('\n');
 		break;
 	}
@@ -428,9 +431,9 @@ void loop() {
 		//Start a capture/conversion
 		//First, load the channels to sample from the command, this automatically converts the digital pin number to SC1a numbers which the ADC requires
 		for (int i(0); i < 4; ++i) {
-			uint16_t SC1A_number_0 = adc_pin2sc1a(json_in_root["ADC0Channels"][i].as<uint16_t>(), 0);
+			uint16_t SC1A_number_0 = adc_pin2sc1a(jsonDoc["ADC0Channels"][i].as<uint16_t>(), 0);
 			ChannelsCfg_1[i] = 0x40 | SC1A_number_0; //the 0x40 is AIEN (interrupt enable)
-			uint16_t SC1A_number_1 = adc_pin2sc1a(json_in_root["ADC1Channels"][i].as<uint16_t>(), 1);
+			uint16_t SC1A_number_1 = adc_pin2sc1a(jsonDoc["ADC1Channels"][i].as<uint16_t>(), 1);
 			ChannelsCfg_1[i] = 0x40 | SC1A_number_1; //the 0x40 is AIEN (interrupt enable)
 		}
 		// clear output array before looping again
@@ -494,11 +497,11 @@ void loop() {
 		//Start a capture/conversion
 		//First, load the channels to sample from the command, this automatically converts the digital pin number to SC1a numbers which the ADC requires
 		for (int i(0); i < 4; ++i) {
-			uint16_t SC1A_number_1 = adc_pin2sc1a(json_in_root["ADC1Channels"][i].as<uint16_t>(), 1);
+			uint16_t SC1A_number_1 = adc_pin2sc1a(jsonDoc["ADC1Channels"][i].as<uint16_t>(), 1);
 			ChannelsCfg_1[i] = 0x40 | SC1A_number_1; //the 0x40 is AIEN (interrupt enable)
 		}
 
-		int repetitions_in = json_in_root["repetitions"];
+		int repetitions_in = jsonDoc["repetitions"];
 		int* output_array = new int[repetitions_in * BUF_SIZE];
 		// clear output array before looping again
 		for (int i = 0; i < BUF_SIZE*repetitions_in; ++i) {
