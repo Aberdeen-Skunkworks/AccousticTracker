@@ -588,20 +588,13 @@ void loop() {
   if (jsonDoc.containsKey("board")) {
     if (board == 1) {
       board_outputs = get_board_outputs(1);
-      if (board_outputs != 88) {
-        Serial.print("{\"Status\":\"Fail\", \"Error\":\"Board 1 outputs not equal to 88\"}\n");
-        break;
-      }
-    }
-    else if (board == 2) {
-      board_outputs = get_board_outputs(2);
-      if (board_outputs != 88) {
-        Serial.print("{\"Status\":\"Fail\", \"Error\":\"Board 2 outputs not equal to 88\"}\n");
+      if (board_outputs != 100) {
+        Serial.print("{\"Status\":\"Fail\", \"Error\":\"Board 1 outputs not equal to 100\"}\n");
         break;
       }
     }
     else {
-      Serial.print("{\"Status\":\"Fail\", \"Error\":\"Board number not avaliable pick 1 or 2\"}\n");
+      Serial.print("{\"Status\":\"Fail\", \"Error\":\"Board number not avaliable pick 1 ONLY\"}\n");
       break;
     }
   }
