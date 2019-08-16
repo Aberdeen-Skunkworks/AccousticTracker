@@ -30,16 +30,25 @@ void setup() {
 	pinMode(9, OUTPUT);
 	digitalWrite(9, LOW);
 
-	//Set mux select pins to low
-	pinMode(35, OUTPUT);
-	pinMode(36, OUTPUT);
-	pinMode(37, OUTPUT);
-	pinMode(38, OUTPUT);
+	//Set mux select pins to low (selecting Y0 to Z) so transceiver 0
+	pinMode(35, OUTPUT); //S0
+	pinMode(36, OUTPUT); //S1
+	pinMode(37, OUTPUT); //S2
+	pinMode(38, OUTPUT); //S3
 	digitalWrite(35, LOW);
 	digitalWrite(36, LOW);
 	digitalWrite(37, LOW);
 	digitalWrite(38, LOW);
 
+  //Change all transceivers to grounded listening sides so allowed for output
+  pinMode(15, OUTPUT); //T0-3
+  pinMode(14, OUTPUT); //T4-7
+  pinMode(16, OUTPUT); //T17-20
+  pinMode(28, OUTPUT); //T21-24
+  digitalWrite(15, HIGH);
+  digitalWrite(14, HIGH);
+  digitalWrite(16, HIGH);
+  digitalWrite(28, HIGH);
 
 	Serial.begin(115200);
 	HWSERIAL_1.begin(1250000, SERIAL_8N1);
