@@ -16,10 +16,11 @@ with Controller() as com:
             
     for i in range(100):
         # Send offset commands
-        command = Functions.create_board_command_offset(board, i, 0)
+        command = Functions.create_board_command_offset(board, i, 0.1*i, enable=True)
         reply = com.send_json(command)
         if reply["Status"] != "Success":
             raise Exception("Failed to start conversion", reply)
+        
                 
     # Send load offset command
     command = Functions.create_board_command_load_offsets(board)

@@ -589,7 +589,10 @@ void loop() {
   volatile double offset = jsonDoc["offset"];
   volatile int divisor = jsonDoc["divisor"];
   volatile double freq = jsonDoc["freq"];
-  volatile bool enable = jsonDoc["enable"];
+  
+  volatile bool enable = true;
+  if (jsonDoc.containsKey("enable"))
+    enable = jsonDoc["enable"];
   volatile bool load_offsets = jsonDoc["load_offsets"];
   volatile int board_outputs = 0;
 
@@ -625,14 +628,9 @@ void loop() {
     loadOffsets(board);
   }
 
-  // Check if command is a disable or enable command
-  if (jsonDoc.containsKey("enable") && enable == false) {
-    disableOutput(transducer_number, board);
-  }
-
   // If it is enable then check what type and do it
   if (jsonDoc.containsKey("transducer_number") && jsonDoc.containsKey("offset") && jsonDoc.containsKey("board")) {
-    setOffset(transducer_number, offset, board);
+    setOffset(transducer_number, offset, board, enable);
   }
   if (jsonDoc.containsKey("power")) {
     const int power = jsonDoc["power"];
