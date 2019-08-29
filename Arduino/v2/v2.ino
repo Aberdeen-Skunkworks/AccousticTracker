@@ -22,9 +22,14 @@ void setup() {
 	pinMode(27, OUTPUT);
 	digitalWrite(27, LOW);
 
-	//sync pin to low
-	pinMode(35, OUTPUT);
-	digitalWrite(35, LOW);
+  //sync pin to low -> It needs to transition to sync boards from low to high! Can hold it whatever level we like
+  pinMode(35, OUTPUT);
+  digitalWrite(35, LOW);
+
+  //OE! When low, all outputs are disabled, and on rise it resets all clocks
+  pinMode(5, OUTPUT);
+  digitalWrite(5, HIGH);
+
 
 	//Set teensy trigger pin to an output pin 
 	pinMode(9, OUTPUT);
@@ -509,10 +514,32 @@ void loop() {
     if (repetitions_in == 1) {
       int counter = 0;
       for (int repetitions = 0; repetitions < repetitions_in; repetitions = repetitions + 1) {
-        digitalWrite(9, HIGH);
-        runDMAADC();
-        digitalWrite(9, LOW);
+        digitalWrite(5, LOW); //Disable all output
+        
+        delay(10); // delay to allow for waves to dissipate
 
+        //Enable outputs now
+        digitalWrite(5, HIGH);
+
+        //Here you might want to delay starting the ADCs, either to get better resolution via interleaving, or data from later in the pulse
+        
+
+        //Start the ADCS
+        noInterrupts();
+        dma0->enable();
+        dma2->enable();
+        interrupts(); //Re-enable interrupts, as we need em for the DMA!
+
+        //FIX THIS
+        //This delay needs to happen along with the ADCs delay, maybe you want to start the ADCs after the pulse is stopped.
+        //Use a timer interrupt so that the pulse is stopped "automagically".
+        delay(1); //Wait for a certain number of waves to be emitted
+        digitalWrite(5, LOW);//Disable outputs again
+        
+        //Now wait till the DMA/ADC sampling is complete
+        while (!dma0->complete() || !dma2->complete()) {}
+
+        //Copy out the ADC results into the output buffer
         for (int i = (0); i < BUF_SIZE; i = i + 1) {
           output_array[i + BUF_SIZE * counter] = adcbuffer_1[i];
         }
@@ -537,7 +564,7 @@ void loop() {
         }
         counter += 1;
 
-        delay(10); // delay to allow for previous wave to dissapate
+        delay(10); // delay to allow for previous wave to dissipate
       }
     }
     else {

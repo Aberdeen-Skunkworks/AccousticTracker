@@ -26,13 +26,12 @@ from Functions import find_samples_per_wave
 
 
 V_ref = 3.302 # Voltage Reference
-repetitions = 6
+repetitions = 1
 
 with Controller() as com:
     command = {"CMD":5, "repetitions":repetitions, "ADC1Channels":[39,39,39,39]}
     
     adc_0_output, adc_1_output, teensy_reply = read_voltages_two_pins_fastest(command, 1, com, 1)
-    
     plt.clf()
     y_values = np.multiply(np.divide(adc_1_output[:len(adc_1_output)], 4095),V_ref)
     x_values = np.linspace(1, len(y_values), len(y_values))
