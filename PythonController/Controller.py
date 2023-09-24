@@ -32,6 +32,7 @@ class Controller():
         
     def __enter__(self):
         self.com = None
+        print("Found these ports", self.serial_ports())
         for port in self.serial_ports():
             print("Trying port " + str(port)+" ", end="")
             self.com = serial.Serial(port=port, baudrate=500000000, timeout=0.01)
@@ -61,6 +62,7 @@ class Controller():
             :returns:
                 A list of the serial ports available on the system
         """
+        print("On platform ", sys.platform)
         if sys.platform.startswith('win'):
             ports = ['COM%s' % (i + 1) for i in range(256)]
         elif sys.platform.startswith('linux') or sys.platform.startswith('cygwin'):
@@ -72,6 +74,7 @@ class Controller():
         else:
             raise EnvironmentError('Unsupported platform')
     
+        print("Checking ports ", ports)
         result = []
         for port in ports:
             try:
@@ -80,6 +83,8 @@ class Controller():
                 result.append(port)
             except (OSError, serial.SerialException):
                 pass
+
+        print("Could connect to these ports ", result)
         return result
 
     def __exit__(self, exc_type, exc_value, traceback):
