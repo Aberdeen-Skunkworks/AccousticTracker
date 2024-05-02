@@ -23,7 +23,8 @@ ntrans = len(rt);
 #plt.plot(x, y,'ro'); plt.show() # Show Plot of the positions
 # -------------------------------------------------------------------------- #p
 
-board = input("Please choose a Board 1 or 2: ")
+#board = input("Please choose a Board 1 or 2: ")
+board = '1'
 
 print(" ")
 print("Control modes:")
@@ -48,7 +49,7 @@ if choose == ("o"):
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
-            
+       
 ## --------------------------- Turn On --------------------------- ##
 elif choose == ("n"):
     
@@ -58,17 +59,12 @@ elif choose == ("n"):
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
-            
-
-                   
+             
 ## --------------------------- Haptic feedback --------------------------- ##
-    
-
-
 elif choose == ("h"):
     print ("Haptic mode selected")
        
-    phi_focus = phase_algorithms.phase_find(rt,0,0,0.10)
+    phi_focus = phase_algorithms.phase_find(rt,0,0,0.25)
 
     from Controller import Controller
     with Controller() as com:        
@@ -97,10 +93,8 @@ elif choose == ("h"):
         reply_freq = com.send_json(command_freq)
         if reply_freq["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_freq)
-            
 
 ## -------------------------- Focused traps ------------------------------- ##  
-
 elif choose == ("p"):
     print ("Pattern mode selected")
     
@@ -132,8 +126,6 @@ elif choose == ("p"):
         
 
 ## --------------------------- Wireless power --------------------------- ##
-    
-
 elif choose == ("power"):
     print ("Wireless Power mode selected")
        
@@ -160,10 +152,8 @@ elif choose == ("power"):
         reply_power = com.send_json(command_power)
         if reply_power["Status"] != "Success":
             raise Exception("Failed to start conversion 2", reply_power)
-
-                
+            
 ## -------------------------- Haptic moving ------------------------------- ##
-
 elif choose == ("hm"):
     print ("Haptic move mode selected")
     
@@ -211,9 +201,7 @@ elif choose == ("hm"):
                     if reply["Status"] != "Success":
                         raise Exception("Failed to start conversion 1", reply)
             
-
 # -------------------------------------------------------------------------- #
-
 elif choose == ("two"):
     print ("Two boards mode selected")
     
@@ -244,13 +232,9 @@ elif choose == ("two"):
             ctl.setOffset(i,phase_index[i])
         ctl.loadOffsets()
         print("loaded offsets")
-
-            
+      
 # -------------------------------------------------------------------------- #
-
-
 elif choose == ("music"):
-    
     import wave, struct, numpy as np
     from scipy.io import wavfile
     from Controller import Controller
@@ -260,7 +244,6 @@ elif choose == ("music"):
     ##fs, data = wavfile.read('8bit10sec.wav')
     #
     data = data[:min(len(data),100000)]
-    #data = [int(110*math.sin(i/8*math.pi)+128) for i in range(100000)]
     size = len(data)
     print("Wave size",size,"bytes")
     data_bytes = bytearray(data)
@@ -317,8 +300,7 @@ elif choose == ("test"):
         com.com.write(data_bytes)
         com.com.write(bytes([endMarker]))
 
-# -------------------------------------------------------------------------- #
-
+# --------------------MIDI-------------------------------------------------- #
 elif choose == ("t"):
     
     import mido
@@ -374,7 +356,6 @@ elif choose == ("t"):
                 
  
 # -------------------------------------------------------------------------- #
-
 elif choose == ("GUI"):
     print ("GUI mode selected")
     
@@ -384,12 +365,11 @@ elif choose == ("GUI"):
     global x,y,z, angle, haptic_toggle
     x = 0    
     y = 0
-    z = 0.02
+    z = 0.018
     angle = 0
     haptic_toggle = False
-    rt = transducer_placment.big_daddy()
-    ntrans = len(rt);
-    phi = np.zeros((ntrans),dtype=int)
+    phi_focus = phase_algorithms.phase_find(rt,x,y,z)
+    phi = phase_algorithms.add_twin_signature(rt, phi_focus, 0)
     
     class Window_update_trap(QtWidgets.QWidget):
     
@@ -487,6 +467,7 @@ elif choose == ("GUI"):
             t2 = time.time()
             # Making it so if haptic is on it will only focus and if its off it will add the pattern
             if haptic_toggle == False:
+                #phi = phase_algorithms.add_vortex_signature(rt,phi_focus)
                 phi = phase_algorithms.add_twin_signature(rt,phi_focus, angle)
             else:
                 phi = phi_focus
@@ -531,7 +512,7 @@ elif choose == ("GUI"):
             
             for up in range(50):
                 global z
-                print("Rising trap 2 cm")
+                print("Rising trap by 0.04cm each time to try to find a nice place to catch")
                 z += 0.0004
                 self.calculate_and_move_trap()
                 time.sleep(0.05)
@@ -619,10 +600,10 @@ elif choose == ("GUI"):
             
         def reset_click(self):
             global x,y,z
-            x = 0; y = 0; z = 0.02;
+            x = 0; y = 0; z = 0.018;
             self.calculate_and_move_trap()
             print(' ')
-            print('Reset to [0, 0, 0.02]')
+            print('Reset to [0, 0, 0.018]')
     
     app = QtWidgets.QApplication(sys.argv)
     app.aboutToQuit.connect(app.deleteLater)
