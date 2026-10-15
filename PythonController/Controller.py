@@ -69,7 +69,7 @@ class Controller():
             # this excludes your current terminal "/dev/tty"
             ports= glob.glob('/dev/tty[A-Za-z]*')
         elif sys.platform.startswith('darwin'):
-            ports = glob.glob('/dev/tty.*')
+            ports = glob.glob('/dev/tty.usbmodem*')
             print("darwin", ports)
         else:
             raise EnvironmentError('Unsupported platform')
